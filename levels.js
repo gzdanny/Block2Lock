@@ -1,6 +1,4 @@
-import type { Level } from './types';
-
-export const levels: Level[] = [
+export const levels = [
   [
     { "x": 1, "y": 2, "length": 2, "hz": true },
     { "x": 0, "y": 0, "length": 2, "hz": false },
