@@ -2,9 +2,18 @@
 import { levels } from './levels.js';
 
 const vehicleColors = [
-  'bg-red-600', // Player's car
-  'bg-cyan-600', 'bg-sky-700', 'bg-cyan-800', 'bg-sky-600', 'bg-cyan-700',
-  'bg-sky-800', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-indigo-500', 'bg-slate-500',
+  'bg-rose-500', // Player's car: a vibrant, cyberpunk-appropriate pinkish-red
+  'bg-cyan-500',
+  'bg-indigo-600',
+  'bg-teal-500',
+  'bg-purple-600',
+  'bg-sky-600',
+  'bg-blue-600',
+  'bg-violet-600',
+  'bg-cyan-700',
+  'bg-indigo-500',
+  'bg-sky-500',
+  'bg-purple-500'
 ];
 
 // --- DOM Elements ---
@@ -90,10 +99,14 @@ function render() {
         const vehicleEl = document.createElement('div');
         vehicleEl.id = `vehicle-${i}`;
         const isPlayer = i === 0;
-        const color = isPlayer ? vehicleColors[0] : vehicleColors[i % vehicleColors.length];
-        const patternClass = isPlayer ? 'player-car-pattern' : '';
+        const color = isPlayer ? vehicleColors[0] : vehicleColors[((i - 1) % (vehicleColors.length - 1)) + 1];
         
-        vehicleEl.className = `absolute rounded-md flex items-center justify-center font-bold text-white/50 shadow-lg cursor-grab ${color} ${patternClass}`;
+        let extraClasses = 'shadow-lg';
+        if (isPlayer) {
+            extraClasses = 'player-car-pattern player-car-shadow';
+        }
+        
+        vehicleEl.className = `absolute rounded-md flex items-center justify-center font-bold text-white/50 cursor-grab ${color} ${extraClasses}`;
         
         vehicleEl.style.width = v.hz ? `calc(100%/6 * ${v.length} - 4px)` : `calc(100%/6 - 4px)`;
         vehicleEl.style.height = v.hz ? `calc(100%/6 - 4px)` : `calc(100%/6 * ${v.length} - 4px)`;
