@@ -1,0 +1,5 @@
+{
+  "name": "Rush Hour Traffic Game",
+  "description": "A classic sliding block puzzle game where the player must navigate a red car through a traffic jam to the exit. The game features hundreds of levels with increasing difficulty. Players can move cars and trucks horizontally or vertically to clear a path.",
+  "requestFramePermissions": []
+}
