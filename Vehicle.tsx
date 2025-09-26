@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Vehicle } from './types';
 
-export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allVehicles }) => {
+export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allVehicles, isPlayer }) => {
     const [isDragging, setIsDragging] = useState(false);
     const dragStartPos = useRef({ x: 0, y: 0 });
     const vehicleRef = useRef<HTMLDivElement>(null);
+    const animationEndTimeout = useRef<number | null>(null);
 
     const getDragBounds = useCallback(() => {
         const grid = Array(6).fill(null).map(() => Array(6).fill(false));
@@ -33,6 +34,7 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
             }
             let maxX = 6 - vehicle.length;
             for (let x = vehicle.x + vehicle.length; x < 6; x++) {
+                 if (vehicle.y < 0 || vehicle.y >= 6 || x < 0 || x >= 6) continue;
                 if (grid[vehicle.y][x]) {
                     maxX = x - vehicle.length;
                     break;
@@ -42,6 +44,7 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
         } else {
             let minY = 0;
             for (let y = vehicle.y - 1; y >= 0; y--) {
+                if (y < 0 || y >= 6 || vehicle.x < 0 || vehicle.x >= 6) continue;
                 if (grid[y][vehicle.x]) {
                     minY = y + 1;
                     break;
@@ -49,6 +52,7 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
             }
             let maxY = 6 - vehicle.length;
             for (let y = vehicle.y + vehicle.length; y < 6; y++) {
+                if (y < 0 || y >= 6 || vehicle.x < 0 || vehicle.x >= 6) continue;
                 if (grid[y][vehicle.x]) {
                     maxY = y - vehicle.length;
                     break;
@@ -59,6 +63,10 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
     }, [allVehicles, vehicle, index, cellSize]);
 
     const handleInteractionStart = (e) => {
+        if (animationEndTimeout.current) {
+            clearTimeout(animationEndTimeout.current);
+            animationEndTimeout.current = null;
+        }
         e.preventDefault();
         setIsDragging(true);
         const event = e.touches ? e.touches[0] : e;
@@ -86,7 +94,7 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
             const clampedDeltaY = Math.max(bounds.min, Math.min(deltaY, bounds.max));
             vehicleRef.current.style.transform = `translateY(${clampedDeltaY}px)`;
         }
-    }, [isDragging, vehicle, getDragBounds]);
+    }, [isDragging, vehicle.hz, getDragBounds]);
     
     const handleInteractionEnd = useCallback(() => {
         if (!isDragging || !vehicleRef.current) return;
@@ -97,6 +105,9 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
 
         let newX = vehicle.x;
         let newY = vehicle.y;
+        
+        const originalX = vehicle.x;
+        const originalY = vehicle.y;
 
         if (vehicle.hz) {
             newX = Math.round((vehicle.x * cellSize + delta) / cellSize);
@@ -106,12 +117,33 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
 
         setIsDragging(false);
         document.body.style.cursor = 'default';
-        if(vehicleRef.current) {
+
+        const hasMoved = newX !== originalX || newY !== originalY;
+
+        if (vehicleRef.current) {
+            // Animate the snap
             vehicleRef.current.style.transition = 'transform 0.2s ease';
-            vehicleRef.current.style.transform = 'translate(0, 0)';
+            const finalTransformX = (newX - originalX) * cellSize;
+            const finalTransformY = (newY - originalY) * cellSize;
+            vehicleRef.current.style.transform = `translate(${finalTransformX}px, ${finalTransformY}px)`;
+
+            const handleSnapEnd = () => {
+                // Once snap is complete, update state and reset transform
+                if (vehicleRef.current) {
+                    vehicleRef.current.style.transition = 'none';
+                    vehicleRef.current.style.transform = 'translate(0, 0)';
+                }
+                if (hasMoved) {
+                    onMove(index, newX, newY);
+                }
+            }
+
+            // Use a timeout as a reliable fallback for the transitionend event
+            animationEndTimeout.current = window.setTimeout(handleSnapEnd, 200);
+        } else if (hasMoved) {
+            // Fallback if ref is not available
+            onMove(index, newX, newY);
         }
-        
-        onMove(index, newX, newY);
     }, [isDragging, vehicle, cellSize, onMove, index]);
 
     useEffect(() => {
@@ -128,19 +160,31 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
             window.removeEventListener('touchend', handleInteractionEnd);
         };
     }, [isDragging, handleInteractionMove, handleInteractionEnd]);
+    
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (animationEndTimeout.current) {
+                clearTimeout(animationEndTimeout.current);
+            }
+        };
+    }, []);
+
+    const vehicleColor = isPlayer ? 'bg-red-600' : color;
+    const patternClass = isPlayer ? 'player-car-pattern' : '';
 
     return (
         <div 
             ref={vehicleRef}
             onMouseDown={handleInteractionStart}
             onTouchStart={handleInteractionStart}
-            className={`absolute rounded-md flex items-center justify-center font-bold text-white/50 shadow-lg cursor-grab ${isDragging ? 'z-10 shadow-2xl' : ''} ${color}`}
+            className={`absolute rounded-md flex items-center justify-center font-bold text-white/50 shadow-lg cursor-grab ${isDragging ? 'z-10 shadow-2xl' : ''} ${vehicleColor} ${patternClass}`}
             style={{
                 width: vehicle.hz ? `calc(100%/6 * ${vehicle.length} - 4px)` : `calc(100%/6 - 4px)`,
                 height: vehicle.hz ? `calc(100%/6 - 4px)` : `calc(100%/6 * ${vehicle.length} - 4px)`,
                 top: `calc(100%/6 * ${vehicle.y} + 2px)`,
                 left: `calc(100%/6 * ${vehicle.x} + 2px)`,
-                transition: 'top 0.2s ease, left 0.2s ease, transform 0.2s ease',
+                transition: 'top 0.2s ease, left 0.2s ease',
             }}
             aria-label={`Vehicle at column ${vehicle.x + 1}, row ${vehicle.y + 1} of length ${vehicle.length}, oriented ${vehicle.hz ? 'horizontally' : 'vertically'}`}
         >

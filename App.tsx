@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { levels } from './levels';
 import { Board } from './Board';
@@ -5,17 +6,17 @@ import type { Vehicle } from './types';
 
 const vehicleColors = [
   'bg-red-600', // Player's car
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-yellow-500',
-  'bg-purple-500',
-  'bg-orange-500',
-  'bg-pink-500',
+  'bg-cyan-600',
+  'bg-sky-700',
+  'bg-cyan-800',
+  'bg-sky-600',
+  'bg-cyan-700',
+  'bg-sky-800',
   'bg-teal-500',
   'bg-cyan-500',
-  'bg-lime-500',
+  'bg-sky-500',
   'bg-indigo-500',
-  'bg-rose-500',
+  'bg-slate-500',
 ];
 
 const Controls = ({ onReset, onPrev, onNext, levelIndex, maxLevel }) => (
@@ -69,7 +70,7 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('rushHourLevel', levelIndex.toString());
     }, [levelIndex]);
-    
+
     const handleReset = useCallback(() => {
         loadLevel(levelIndex);
     }, [levelIndex, loadLevel]);
@@ -88,7 +89,8 @@ export default function App() {
 
     const checkWinCondition = useCallback((updatedVehicles: Vehicle[]) => {
         const redCar = updatedVehicles[0];
-        if (redCar.hz && redCar.x + redCar.length === 6) {
+        // The win condition is met if the red car's rightmost edge has reached or passed column 6.
+        if (redCar.hz && redCar.x + redCar.length >= 6) {
             setIsWon(true);
         }
     }, []);
@@ -131,6 +133,7 @@ export default function App() {
             for (let x = startX; x <= endX + currentVehicle.length - 1; x++) {
                  // Skip the cells the vehicle currently occupies
                 if (x >= currentVehicle.x && x < currentVehicle.x + currentVehicle.length) continue;
+                if (y < 0 || y >= 6 || x < 0 || x >= 6) continue; // Boundary check
                 if (grid[y][x]) {
                     isValidMove = false;
                     break;
@@ -142,6 +145,7 @@ export default function App() {
             const endY = Math.max(currentVehicle.y, newY);
             for (let y = startY; y <= endY + currentVehicle.length - 1; y++) {
                 if (y >= currentVehicle.y && y < currentVehicle.y + currentVehicle.length) continue;
+                if (y < 0 || y >= 6 || x < 0 || x >= 6) continue; // Boundary check
                 if (grid[y][x]) {
                     isValidMove = false;
                     break;
@@ -160,30 +164,38 @@ export default function App() {
     }, [vehicles, isWon, checkWinCondition]);
 
     return (
-        <main className="min-h-screen flex flex-col items-center justify-center p-4 font-sans">
-            <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl">
-                <header className="text-center mb-4">
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-200">Rush Hour</h1>
-                    <div className="flex justify-between items-center mt-4 text-lg text-slate-400 px-2">
-                        <span>Level: {levelIndex + 1}</span>
-                        <span>Moves: {moves}</span>
-                    </div>
-                </header>
-                <Board 
-                    levelIndex={levelIndex}
-                    vehicles={vehicles} 
-                    onMove={handleMove} 
-                    vehicleColors={vehicleColors} 
-                />
-                <Controls 
-                    onReset={handleReset} 
-                    onPrev={handlePrevLevel} 
-                    onNext={handleNextLevel} 
-                    levelIndex={levelIndex} 
-                    maxLevel={levels.length} 
-                />
-            </div>
-            <WinModal isOpen={isWon} moves={moves} onNextLevel={handleNextLevel} />
-        </main>
+        <>
+            <main className="min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+                <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl">
+                    <header className="text-center mb-4">
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-200">Rush Hour</h1>
+                        <div className="flex justify-between items-center mt-4 text-lg text-slate-400 px-2">
+                            <span>Level: {levelIndex + 1}</span>
+                            <span>Moves: {moves}</span>
+                        </div>
+                    </header>
+                    <Board 
+                        levelIndex={levelIndex}
+                        vehicles={vehicles} 
+                        onMove={handleMove} 
+                        vehicleColors={vehicleColors}
+                    />
+                    <Controls 
+                        onReset={handleReset} 
+                        onPrev={handlePrevLevel} 
+                        onNext={handleNextLevel} 
+                        levelIndex={levelIndex} 
+                        maxLevel={levels.length} 
+                    />
+                </div>
+                <WinModal isOpen={isWon} moves={moves} onNextLevel={handleNextLevel} />
+            </main>
+            <style>{`
+                .player-car-pattern {
+                    background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.15) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.15) 75%, transparent 75%, transparent);
+                    background-size: 16px 16px;
+                }
+            `}</style>
+        </>
     );
 }
