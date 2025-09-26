@@ -107,6 +107,11 @@ function render() {
     }
     boardEl.appendChild(gridContainer);
     
+    // Use relative units for gaps to ensure proportional scaling.
+    // These values correspond to Tailwind's `gap-1` and `p-1`.
+    const gap = '0.25rem';
+    const halfGap = '0.125rem';
+
     gameState.vehicles.forEach((v, i) => {
         const vehicleEl = document.createElement('div');
         vehicleEl.id = `vehicle-${i}`;
@@ -121,10 +126,10 @@ function render() {
         
         vehicleEl.className = `absolute rounded-md flex items-center justify-center font-bold text-white/50 cursor-grab vehicle-block-${colorIndex} ${extraClasses}`;
         
-        vehicleEl.style.width = v.hz ? `calc(100%/6 * ${v.length} - 4px)` : `calc(100%/6 - 4px)`;
-        vehicleEl.style.height = v.hz ? `calc(100%/6 - 4px)` : `calc(100%/6 * ${v.length} - 4px)`;
-        vehicleEl.style.top = `calc(100%/6 * ${v.y} + 2px)`;
-        vehicleEl.style.left = `calc(100%/6 * ${v.x} + 2px)`;
+        vehicleEl.style.width = v.hz ? `calc(100%/6 * ${v.length} - ${gap})` : `calc(100%/6 - ${gap})`;
+        vehicleEl.style.height = v.hz ? `calc(100%/6 - ${gap})` : `calc(100%/6 * ${v.length} - ${gap})`;
+        vehicleEl.style.top = `calc(100%/6 * ${v.y} + ${halfGap})`;
+        vehicleEl.style.left = `calc(100%/6 * ${v.x} + ${halfGap})`;
         vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
         
         vehicleEl.addEventListener('mousedown', (e) => handleInteractionStart(e, i));
@@ -269,8 +274,9 @@ function handleInteractionEnd(e) {
     }
 
     // Apply the final snapped position
-    vehicleEl.style.top = `calc(100%/6 * ${vehicle.y} + 2px)`;
-    vehicleEl.style.left = `calc(100%/6 * ${vehicle.x} + 2px)`;
+    const halfGap = '0.125rem';
+    vehicleEl.style.top = `calc(100%/6 * ${vehicle.y} + ${halfGap})`;
+    vehicleEl.style.left = `calc(100%/6 * ${vehicle.x} + ${halfGap})`;
     
     // Force a reflow to ensure the styles are applied before re-enabling transition
     vehicleEl.offsetHeight; 
