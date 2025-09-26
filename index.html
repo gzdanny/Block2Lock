@@ -9,26 +9,262 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            touch-action: none; /* Prevent scrolling on mobile during drag */
-            background-color: #0f172a; /* dark theme default bg-slate-900 */
-            color: #fff; /* dark theme default text-white */
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        .player-car-pattern {
-            background-image: 
+            /* --- Dark Theme Variables (Default) --- */
+            --bg-main: #0f172a;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+
+            --bg-container: #475569;
+            --bg-board: #1e293b;
+            --bg-grid-lines: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
+            --shadow-board: inset 0 2px 4px rgba(0,0,0,0.1);
+
+            --bg-button: #334155;
+            --bg-button-hover: #475569;
+            --text-button: var(--text-primary);
+            --border-button: transparent;
+            --shadow-button: none;
+            --shadow-button-hover-offset: 0;
+            --shadow-button-active-offset: 0;
+            --bg-button-disabled: rgba(51, 65, 85, 0.5); /* slate-700/50 opacity-50 */
+            --text-button-disabled: #64748b; /* slate-500 */
+
+            --bg-modal: #1e293b;
+            --border-modal: transparent;
+            --text-win: #4ade80;
+            --text-best-score: #fde047;
+            --text-best-score-highlight: #fde047;
+            --bg-win-button: #16a34a;
+            --bg-win-button-hover: #22c55e;
+            --text-win-button: #fff;
+            
+            --bg-level-item: #475569;
+            --bg-level-item-hover: #64748b;
+            --text-level-item: var(--text-primary);
+            --bg-level-locked: rgba(51, 65, 85, 0.5);
+            --text-level-locked: #64748b;
+            --text-best-score-badge: #facc15;
+            --stroke-best-score-badge: 1px rgba(0,0,0,0.3);
+            --shadow-best-score-badge: none;
+
+            --bg-exit-sign: #166534;
+            --text-exit-sign: #fff;
+            --stroke-exit-sign-icon: #fff;
+
+            --shadow-vehicle: inset 0 0 0 1px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.2);
+            --shadow-player: 0 0 12px 2px rgba(244, 63, 94, 0.5), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --pattern-player: 
                 linear-gradient(45deg, rgba(0,0,0,.1) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.1) 75%),
                 linear-gradient(45deg, rgba(0,0,0,.1) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.1) 75%);
+
+            /* --- Vehicle Colors --- */
+            --color-player: #f43f5e; /* rose-500 */
+            --color-block-a: #06b6d4; /* cyan-500 */
+            --color-block-b: #4f46e5; /* indigo-600 */
+            --color-block-c: #14b8a6; /* teal-500 */
+            --color-block-d: #8b5cf6; /* purple-600 */
+            --color-block-e: #0ea5e9; /* sky-600 */
+            --color-block-f: #3b82f6; /* blue-600 */
+            --color-block-g: #7c3aed; /* violet-600 */
+            --color-block-h: #0e7490; /* cyan-700 */
+            --color-block-i: #6366f1; /* indigo-500 */
+            --color-block-j: #0284c7; /* sky-500 */
+            --color-block-k: #a855f7; /* purple-500 */
+        }
+
+        /* --- Light Theme Variable Overrides --- */
+        body.light {
+            --bg-main: #eef3f0;
+            --text-primary: #5a7d76;
+            --text-secondary: #5a7d76;
+
+            --bg-container: #d3e3d9;
+            --bg-board: #cdd7d2;
+            --bg-grid-lines: #e3ebe7;
+            --shadow-board: inset 0 2px 4px rgba(0,0,0,0.06);
+
+            --bg-button: #b2d8c3;
+            --bg-button-hover: #c5e0d1;
+            --text-button: #5a7d76;
+            --border-button: 1px solid #a1c9b4;
+            --shadow-button: 0 2px 0 #9ac0ae;
+            --shadow-button-hover-offset: -1px;
+            --shadow-button-active-offset: 1px;
+            --bg-button-disabled: #e0e0e0;
+            --text-button-disabled: #bdbdbd;
+
+            --bg-modal: #eef3f0;
+            --border-modal: 2px solid #c1d6cc;
+            --text-win: #2e7d32;
+            --text-best-score: #e65100;
+            --text-best-score-highlight: #e65100;
+            --bg-win-button: #66bb6a;
+            --bg-win-button-hover: #81c784;
+            --text-win-button: white;
+
+            --bg-level-item: #dcedc8;
+            --bg-level-item-hover: #c5e1a5;
+            --text-level-item: #5a7d76;
+            --bg-level-locked: #e0e0e0;
+            --text-level-locked: #bdbdbd;
+            --text-best-score-badge: #e65100;
+            --stroke-best-score-badge: 0;
+            --shadow-best-score-badge: 1px 1px 1px rgba(255,255,255,0.7);
+            
+            --bg-exit-sign: #b2d8c3;
+            --text-exit-sign: #5a7d76;
+            --stroke-exit-sign-icon: #5a7d76;
+
+            --shadow-vehicle: inset 0 0 0 1px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.1);
+            --shadow-player: inset 0 0 0 1px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.1);
+            --pattern-player: 
+                linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%),
+                linear-gradient(-45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%);
+            
+            /* --- Light Vehicle Colors --- */
+            --color-player: #f7c4b1;
+            --color-block-a: #c5e0d1;
+            --color-block-b: #f7efc4;
+            --color-block-c: #c5e0d1;
+            --color-block-d: #f7efc4;
+            --color-block-e: #c5e0d1;
+            --color-block-f: #f7efc4;
+            --color-block-g: #c5e0d1;
+            --color-block-h: #f7efc4;
+            --color-block-i: #c5e0d1;
+            --color-block-j: #f7efc4;
+            --color-block-k: #c5e0d1;
+        }
+
+        /* --- Base Styles using Variables --- */
+        body {
+            touch-action: none; /* Prevent scrolling on mobile during drag */
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        h1, #level-display, #moves-display {
+            color: var(--text-primary);
+        }
+        header .text-slate-400 {
+            color: var(--text-secondary);
+        }
+        .player-car-pattern {
+            background-image: var(--pattern-player);
             background-size: 20px 20px;
             background-position: 0 0, 10px 10px;
         }
         .player-car-shadow {
-            /* Tailwind shadow-lg + a rose-colored glow */
-            box-shadow: 0 0 12px 2px rgba(244, 63, 94, 0.5), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            box-shadow: var(--shadow-player);
         }
+        
+        #game-container {
+            background-color: var(--bg-container);
+            border-radius: 12px;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        #board {
+            background-color: var(--bg-board);
+            box-shadow: var(--shadow-board);
+            border-radius: 10px;
+        }
+        #board .grid-cols-6 > div { /* Grid cell */
+            background-color: var(--bg-grid-lines);
+            border-radius: 4px;
+        }
+        .exit-sign {
+            background-color: var(--bg-exit-sign);
+            color: var(--text-exit-sign);
+        }
+        .exit-sign svg {
+            stroke: var(--stroke-exit-sign-icon);
+        }
+        
+        /* Buttons */
+        #prev-btn, #next-btn, #reset-btn, #level-select-btn {
+            background-color: var(--bg-button);
+            color: var(--text-button);
+            font-weight: 500;
+            border: var(--border-button);
+            box-shadow: var(--shadow-button);
+            transition: all 0.1s ease;
+        }
+        #prev-btn:hover, #next-btn:hover, #reset-btn:hover, #level-select-btn:hover {
+            background-color: var(--bg-button-hover);
+            transform: translateY(var(--shadow-button-hover-offset, 0));
+        }
+        #prev-btn:active, #next-btn:active, #reset-btn:active, #level-select-btn:active {
+            transform: translateY(var(--shadow-button-active-offset, 1px));
+            box-shadow: 0 1px 0 var(--shadow-button);
+        }
+        #prev-btn:disabled, #next-btn:disabled {
+            background-color: var(--bg-button-disabled);
+            color: var(--text-button-disabled);
+            opacity: 1;
+            box-shadow: none;
+            border-color: var(--button-disabled-border, transparent);
+            transform: translateY(0);
+        }
+
+        /* Modals */
+        #win-modal > div, #level-select-modal > div {
+            background-color: var(--bg-modal);
+            border: var(--border-modal);
+            color: var(--text-primary);
+        }
+        #win-modal .text-green-400 { color: var(--text-win); }
+        #win-modal .text-yellow-300 { color: var(--text-best-score); }
+        #win-modal .text-slate-400 { color: var(--text-secondary); }
+        #win-modal .text-yellow-300 { color: var(--text-best-score-highlight); }
+        
+        #modal-next-btn { 
+            background-color: var(--bg-win-button); 
+            color: var(--text-win-button);
+        }
+        #modal-next-btn:hover { background-color: var(--bg-win-button-hover); }
+
+        /* Level Select Modal */
+        #level-grid button {
+            background-color: var(--bg-level-item); 
+            color: var(--text-level-item);
+        }
+        #level-grid button:not(.level-button-locked):hover {
+            background-color: var(--bg-level-item-hover);
+        }
+        #level-grid .best-score-display {
+            color: var(--text-best-score-badge);
+            -webkit-text-stroke: var(--stroke-best-score-badge);
+            text-shadow: var(--shadow-best-score-badge);
+        }
+        .level-button-locked { 
+            background-color: var(--bg-level-locked) !important;
+            color: var(--text-level-locked) !important;
+        }
+        #close-level-select-btn svg { stroke: var(--text-secondary); }
+        #close-level-select-btn:hover svg { stroke: var(--text-primary); }
+
+        /* Vehicle Blocks */
+        .vehicle-block {
+            box-shadow: var(--shadow-vehicle);
+            border: none;
+        }
+        .vehicle-block-0 { background-color: var(--color-player); }
+        .vehicle-block-1 { background-color: var(--color-block-a); }
+        .vehicle-block-2 { background-color: var(--color-block-b); }
+        .vehicle-block-3 { background-color: var(--color-block-c); }
+        .vehicle-block-4 { background-color: var(--color-block-d); }
+        .vehicle-block-5 { background-color: var(--color-block-e); }
+        .vehicle-block-6 { background-color: var(--color-block-f); }
+        .vehicle-block-7 { background-color: var(--color-block-g); }
+        .vehicle-block-8 { background-color: var(--color-block-h); }
+        .vehicle-block-9 { background-color: var(--color-block-i); }
+        .vehicle-block-10 { background-color: var(--color-block-j); }
+        .vehicle-block-11 { background-color: var(--color-block-k); }
+
+        /* --- Animations & Utilities --- */
         @keyframes slide-out {
-            to {
-                transform: translateX(200%);
-            }
+            to { transform: translateX(200%); }
         }
         .animate-win {
             animation: slide-out 0.4s ease-in forwards;
@@ -53,180 +289,58 @@
             font-size: 0.65rem;
             line-height: 1;
             font-weight: bold;
-            color: #facc15; /* Tailwind yellow-400 */
-            -webkit-text-stroke: 1px rgba(0,0,0,0.3);
         }
         .exit-cutout, .exit-mask {
-            background-color: #0f172a; /* Tailwind bg-slate-900 */
+            background-color: var(--bg-main);
             transition: background-color 0.3s ease;
-            /* Force onto its own compositing layer to fix a subtle bug where it
-               would jump to the final color before transitioning on theme change. */
-            transform: translateZ(0);
+            will-change: background-color; /* Explicitly tell the browser to optimize this animation */
         }
-
-    </style>
-    <style>
-        /* Light Theme */
-        body.light {
-            background-color: #eef3f0;
-            color: #5a7d76;
-        }
-
-        .light .text-slate-200 { color: #5a7d76; }
-        .light h1, .light #level-display, .light #moves-display, .light .text-slate-400 {
-            color: #5a7d76;
-        }
-
-        .light .bg-slate-700, .light #level-select-btn { /* Buttons */
-            background-color: #b2d8c3;
-            color: #5a7d76;
-            font-weight: 500;
-            border: 1px solid #a1c9b4;
-            box-shadow: 0 2px 0 #9ac0ae;
-            transition: all 0.1s ease;
-        }
-        .light .bg-slate-700:hover, .light .hover\:bg-slate-600:hover, .light #level-select-btn:hover {
-            background-color: #c5e0d1;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 0 #9ac0ae;
-        }
-        .light .bg-slate-700:active, .light #level-select-btn:active {
-            transform: translateY(1px);
-            box-shadow: 0 1px 0 #9ac0ae;
-        }
-        .light .disabled\:opacity-50:disabled {
-            background-color: #e0e0e0;
-            color: #bdbdbd;
-            box-shadow: none;
-            border-color: #d1d1d1;
-            opacity: 1;
-        }
-
-        .light #game-container.bg-slate-600 {
-            background-color: #d3e3d9;
-            border-radius: 12px;
-            border: 2px solid #c1d6cc;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-        .light #board.bg-slate-800 {
-            background-color: #cdd7d2; /* Grid line color */
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
-            border-radius: 10px;
-        }
-        .light .bg-slate-900\/50 {
-            background-color: #e3ebe7 !important;
-            border-radius: 4px !important;
-        }
-
-        .light .exit-cutout, .light .exit-mask {
-            background-color: #eef3f0; /* Light theme Body background */
-        }
-        .light .exit-sign.bg-green-700 {
-            background-color: #b2d8c3;
-            color: #5a7d76;
-        }
-        .light .exit-sign.bg-green-700 svg {
-            stroke: #5a7d76;
-        }
-
-        /* Modals */
-        .light .bg-slate-800 {
-            background-color: #eef3f0;
-            border: 2px solid #c1d6cc;
-            color: #5a7d76;
-        }
-        .light .text-green-400 { color: #2e7d32; }
-        .light .text-yellow-300 { color: #e65100; }
-        .light .text-slate-400 { color: #78909c; }
-        .light .bg-green-600 { background-color: #66bb6a; color: white; }
-        .light .hover\:bg-green-500:hover { background-color: #81c784; }
-
-        /* Level Select Modal */
-        .light #level-grid .bg-slate-600 { background-color: #dcedc8; color: #5a7d76; }
-        .light #level-grid .hover\:bg-slate-500:hover { background-color: #c5e1a5; }
-        .light #level-grid .best-score-display {
-            color: #e65100;
-            -webkit-text-stroke: 0;
-            text-shadow: 1px 1px 1px rgba(255,255,255,0.7);
-        }
-        .light .level-button-locked.bg-slate-700\/50 { background-color: #e0e0e0 !important; }
-        .light .level-button-locked.text-slate-500 { color: #bdbdbd !important; }
-        .light #close-level-select-btn svg { stroke: #78909c; }
-        .light #close-level-select-btn:hover svg { stroke: #5a7d76; }
-
-        /* Vehicle Blocks */
-        .light .absolute.rounded-md {
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.1);
-            border: none;
-        }
-        .light .player-car-pattern {
-            background-image:
-                linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%),
-                linear-gradient(-45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%);
-            background-size: 16px 16px;
-        }
-        .light .player-car-shadow {
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .light .bg-rose-500 { background-color: #f7c4b1 !important; } /* Player */
-        .light .bg-cyan-500 { background-color: #c5e0d1 !important; }
-        .light .bg-indigo-600 { background-color: #f7efc4 !important; }
-        .light .bg-teal-500 { background-color: #c5e0d1 !important; }
-        .light .bg-purple-600 { background-color: #f7efc4 !important; }
-        .light .bg-sky-600 { background-color: #c5e0d1 !important; }
-        .light .bg-blue-600 { background-color: #f7efc4 !important; }
-        .light .bg-violet-600 { background-color: #c5e0d1 !important; }
-        .light .bg-cyan-700 { background-color: #f7efc4 !important; }
-        .light .bg-indigo-500 { background-color: #c5e0d1 !important; }
-        .light .bg-sky-500 { background-color: #f7efc4 !important; }
-        .light .bg-purple-500 { background-color: #c5e0d1 !important; }
     </style>
 </head>
   <body class="font-sans">
     <main class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-lg md:max-w-xl lg:max-w-2xl">
             <header class="text-center mb-4">
-                <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-200">Block<span id="theme-toggle" class="cursor-pointer" title="Toggle Theme">2</span>Lock</h1>
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight">Block<span id="theme-toggle" class="cursor-pointer" title="Toggle Theme">2</span>Lock</h1>
                 <div class="flex justify-between items-center mt-4 text-lg text-slate-400 px-2">
                     <span>Level: <span id="level-display">1</span></span>
-                    <button id="level-select-btn" class="px-3 py-1 bg-slate-700 rounded-md text-sm hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Select Level</button>
+                    <button id="level-select-btn" class="px-3 py-1 rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Select Level</button>
                     <span>Moves: <span id="moves-display">0</span></span>
                 </div>
             </header>
             
-            <div id="game-container" class="p-2 bg-slate-600 rounded-lg relative shadow-lg mr-20">
-                 <div id="board" class="aspect-square w-full bg-slate-800 rounded-md p-1 relative shadow-inner">
+            <div id="game-container" class="p-2 rounded-lg relative mr-20">
+                 <div id="board" class="aspect-square w-full rounded-md p-1 relative">
                     <!-- Grid and vehicles will be generated by JS -->
                  </div>
                  <!-- Exit cutout, sign, and mask will be injected here by JS -->
             </div>
 
             <div class="flex justify-center items-center gap-4 mt-6">
-                <button id="prev-btn" class="px-4 py-2 bg-slate-700 rounded-md disabled:opacity-50 hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Prev</button>
-                <button id="reset-btn" class="px-4 py-2 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Reset</button>
-                <button id="next-btn" class="px-4 py-2 bg-slate-700 rounded-md disabled:opacity-50 hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Next</button>
+                <button id="prev-btn" class="px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Prev</button>
+                <button id="reset-btn" class="px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Reset</button>
+                <button id="next-btn" class="px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Next</button>
             </div>
         </div>
     </main>
     
     <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 justify-center items-center z-50" role="dialog" aria-modal="true">
-        <div class="bg-slate-800 p-8 rounded-lg text-center shadow-2xl animate-fade-in">
+        <div class="p-8 rounded-lg text-center shadow-2xl animate-fade-in">
             <h2 class="text-4xl font-bold text-green-400 mb-2">You Win!</h2>
             <p id="win-message" class="text-xl mb-3 text-yellow-300 font-semibold"></p>
             <p class="text-lg mb-2">You solved it in <strong id="win-moves">0</strong> moves.</p>
             <p id="win-best-score" class="text-md text-slate-400 mb-6">Your best is <strong id="win-best-score-value">0</strong> moves.</p>
-            <button id="modal-next-btn" class="px-6 py-3 bg-green-600 rounded-md text-white font-semibold hover:bg-green-500 transition-colors focus:outline-none focus:ring-2 focus:ring-green-400">Next Level</button>
+            <button id="modal-next-btn" class="px-6 py-3 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-400">Next Level</button>
         </div>
     </div>
 
     <div id="level-select-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 justify-center items-center z-50 p-4" role="dialog" aria-modal="true">
-        <div class="bg-slate-800 p-6 rounded-lg text-center shadow-2xl animate-fade-in w-full max-w-md relative">
-            <h2 class="text-3xl font-bold text-slate-200 mb-6">Select Level</h2>
+        <div class="p-6 rounded-lg text-center shadow-2xl animate-fade-in w-full max-w-md relative">
+            <h2 class="text-3xl font-bold mb-6">Select Level</h2>
             <div id="level-grid" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-[60vh] overflow-y-auto pr-2">
                 <!-- Level buttons will be generated by JS -->
             </div>
-            <button id="close-level-select-btn" class="absolute top-2 right-2 text-slate-400 hover:text-white transition-colors" aria-label="Close">
+            <button id="close-level-select-btn" class="absolute top-2 right-2 transition-colors" aria-label="Close">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>

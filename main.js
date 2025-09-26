@@ -1,20 +1,5 @@
 import { levels } from './levels.js';
 
-const vehicleColors = [
-  'bg-rose-500', // Player's car: a vibrant, cyberpunk-appropriate pinkish-red
-  'bg-cyan-500',
-  'bg-indigo-600',
-  'bg-teal-500',
-  'bg-purple-600',
-  'bg-sky-600',
-  'bg-blue-600',
-  'bg-violet-600',
-  'bg-cyan-700',
-  'bg-indigo-500',
-  'bg-sky-500',
-  'bg-purple-500'
-];
-
 // --- DOM Elements ---
 const boardEl = document.getElementById('board');
 const gameContainerEl = document.getElementById('game-container');
@@ -118,7 +103,6 @@ function render() {
     gridContainer.className = 'absolute inset-0 grid grid-cols-6 grid-rows-6 gap-1';
     for (let i = 0; i < 36; i++) {
         const cell = document.createElement('div');
-        cell.className = 'bg-slate-900/50 rounded-[2px]';
         gridContainer.appendChild(cell);
     }
     boardEl.appendChild(gridContainer);
@@ -127,14 +111,15 @@ function render() {
         const vehicleEl = document.createElement('div');
         vehicleEl.id = `vehicle-${i}`;
         const isPlayer = i === 0;
-        const color = isPlayer ? vehicleColors[0] : vehicleColors[((i - 1) % (vehicleColors.length - 1)) + 1];
         
-        let extraClasses = 'shadow-lg';
+        let extraClasses = 'vehicle-block';
         if (isPlayer) {
-            extraClasses = 'player-car-pattern player-car-shadow';
+            extraClasses += ' player-car-pattern player-car-shadow';
         }
         
-        vehicleEl.className = `absolute rounded-md flex items-center justify-center font-bold text-white/50 cursor-grab ${color} ${extraClasses}`;
+        const colorIndex = isPlayer ? 0 : ((i - 1) % 11) + 1; // 11 is the number of block colors defined in CSS
+        
+        vehicleEl.className = `absolute rounded-md flex items-center justify-center font-bold text-white/50 cursor-grab vehicle-block-${colorIndex} ${extraClasses}`;
         
         vehicleEl.style.width = v.hz ? `calc(100%/6 * ${v.length} - 4px)` : `calc(100%/6 - 4px)`;
         vehicleEl.style.height = v.hz ? `calc(100%/6 - 4px)` : `calc(100%/6 * ${v.length} - 4px)`;
@@ -354,7 +339,7 @@ function populateLevelSelectModal() {
         const isUnlocked = i <= gameState.highestUnlockedLevel;
         
         if (isUnlocked) {
-            button.className = 'aspect-square flex items-center justify-center bg-slate-600 rounded-md hover:bg-slate-500 transition-colors text-lg relative font-semibold';
+            button.className = 'aspect-square flex items-center justify-center rounded-md transition-colors text-lg relative font-semibold';
             button.innerHTML = `<span>${i + 1}</span>`;
             button.addEventListener('click', () => {
                 loadLevel(i);
@@ -368,7 +353,7 @@ function populateLevelSelectModal() {
                 button.appendChild(scoreDisplay);
             }
         } else {
-             button.className = 'aspect-square flex items-center justify-center bg-slate-700/50 rounded-md text-slate-500 cursor-not-allowed level-button-locked relative';
+             button.className = 'aspect-square flex items-center justify-center rounded-md cursor-not-allowed level-button-locked relative';
              button.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -442,13 +427,23 @@ function init() {
 
     // Create exit visuals if they don't exist
     if (!document.querySelector('.exit-cutout')) {
-        const exitTop = 'calc(100%/6 * 2)';
-        const exitHeight = 'calc(100%/6)';
+        const exitHeight = 'calc(100% / 6 * 1.4)';
+        // To vertically center the 1.4x height element on the 3rd row (index 2),
+        // we start at the row's center (2.5) and subtract half the element's height (1.4 / 2 = 0.7).
+        // 2.5 - 0.7 = 1.8.
+        const exitTop = 'calc(100% / 6 * 1.8)';
 
         // This element creates the "cutout" by matching the body background
         // and covering the right padding (the "fence") of the game container.
         const exitCutout = document.createElement('div');
-        exitCutout.className = 'exit-cutout absolute right-0 w-3';
+        exitCutout.className = 'exit-cutout absolute';
+        // The container has p-2 (0.5rem) and the board has p-1 (0.25rem).
+        // The total width needed to cover the gap is 0.75rem.
+        exitCutout.style.width = '0.75rem';
+        // The container has p-2 (0.5rem), so the content area ends 0.5rem from the edge.
+        // We position the cutout's left edge there, and its 0.75rem width will
+        // cover the container's padding (0.5rem) and the board's padding (0.25rem).
+        exitCutout.style.left = 'calc(100% - 0.5rem)';
         exitCutout.style.top = exitTop;
         exitCutout.style.height = exitHeight;
         exitCutout.style.zIndex = 11;
@@ -456,7 +451,7 @@ function init() {
 
         // This is the EXIT sign, positioned outside in the margin area.
         const exitSign = document.createElement('div');
-        exitSign.className = 'exit-sign absolute right-[-5rem] w-16 flex flex-col items-center justify-center bg-green-700 rounded-md text-white font-bold text-xs z-20';
+        exitSign.className = 'exit-sign absolute right-[-5rem] w-16 flex flex-col items-center justify-center rounded-md text-white font-bold text-xs z-20';
         exitSign.innerHTML = 'EXIT <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>';
         exitSign.style.top = exitTop;
         exitSign.style.height = exitHeight;
