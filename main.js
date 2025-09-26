@@ -1,4 +1,3 @@
-
 import { levels } from './levels.js';
 
 const vehicleColors = [
@@ -34,7 +33,9 @@ const levelSelectBtn = document.getElementById('level-select-btn');
 const levelSelectModalEl = document.getElementById('level-select-modal');
 const levelGridEl = document.getElementById('level-grid');
 const closeLevelSelectBtn = document.getElementById('close-level-select-btn');
+const themeToggleBtn = document.getElementById('theme-toggle');
 
+let currentTheme = 'dark';
 
 // --- Game State ---
 let gameState = {
@@ -56,16 +57,43 @@ let dragState = {
     bounds: { min: 0, max: 0 },
 };
 
+// --- Theme Management ---
+function setTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('light');
+    } else {
+        document.body.classList.remove('light');
+    }
+    currentTheme = theme;
+    try {
+        localStorage.setItem('block2lock_theme', theme);
+    } catch (e) {
+        console.error('Failed to save theme to localStorage:', e);
+    }
+}
+
+function toggleTheme() {
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
+
+// --- Persistence ---
 function saveCurrentLevel() {
-    localStorage.setItem('block2lock_currentLevel', gameState.levelIndex.toString());
+    try {
+        localStorage.setItem('block2lock_currentLevel', gameState.levelIndex.toString());
+    } catch(e) { console.error(e); }
 }
 
 function saveHighestUnlockedLevel() {
-    localStorage.setItem('block2lock_highestUnlockedLevel', gameState.highestUnlockedLevel.toString());
+    try {
+        localStorage.setItem('block2lock_highestUnlockedLevel', gameState.highestUnlockedLevel.toString());
+    } catch(e) { console.error(e); }
 }
 
 function saveBestScores() {
-    localStorage.setItem('block2lock_bestScores', JSON.stringify(gameState.bestScores));
+    try {
+        localStorage.setItem('block2lock_bestScores', JSON.stringify(gameState.bestScores));
+    } catch(e) { console.error(e); }
 }
 
 
@@ -112,11 +140,10 @@ function render() {
         vehicleEl.style.height = v.hz ? `calc(100%/6 - 4px)` : `calc(100%/6 * ${v.length} - 4px)`;
         vehicleEl.style.top = `calc(100%/6 * ${v.y} + 2px)`;
         vehicleEl.style.left = `calc(100%/6 * ${v.x} + 2px)`;
-        // This transition is for level changes
         vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
         
         vehicleEl.addEventListener('mousedown', (e) => handleInteractionStart(e, i));
-        vehicleEl.addEventListener('touchstart', (e) => handleInteractionStart(e, i));
+        vehicleEl.addEventListener('touchstart', (e) => handleInteractionStart(e, i), { passive: false });
         
         boardEl.appendChild(vehicleEl);
     });
@@ -137,391 +164,314 @@ function createCollisionGrid(excludeIndex = -1) {
         if (i === excludeIndex) return;
         for (let j = 0; j < v.length; j++) {
             if (v.hz) {
-                if (v.y >= 0 && v.y < 6 && v.x + j >= 0 && v.x + j < 6) {
+                if(v.y >= 0 && v.y < 6 && v.x + j >= 0 && v.x + j < 6)
                     grid[v.y][v.x + j] = true;
-                }
             } else {
-                if (v.y + j >= 0 && v.y + j < 6 && v.x >= 0 && v.x < 6) {
+                if(v.y + j >= 0 && v.y + j < 6 && v.x >= 0 && v.x < 6)
                     grid[v.y + j][v.x] = true;
-                }
             }
         }
     });
     return grid;
 }
 
-function getDragBounds(vehicleIndex) {
-    const vehicle = gameState.vehicles[vehicleIndex];
-    const grid = createCollisionGrid(vehicleIndex);
-    const { cellSize } = gameState;
-
-    if (vehicle.hz) {
-        let minX = 0;
-        for (let x = vehicle.x - 1; x >= 0; x--) {
-            if (grid[vehicle.y][x]) {
-                minX = x + 1;
-                break;
-            }
-        }
-        let maxX = 6 - vehicle.length;
-        for (let x = vehicle.x + vehicle.length; x < 6; x++) {
-             if (vehicle.y < 0 || vehicle.y >= 6 || x < 0 || x >= 6) continue;
-            if (grid[vehicle.y][x]) {
-                maxX = x - vehicle.length;
-                break;
-            }
-        }
-        return { min: (minX - vehicle.x) * cellSize, max: (maxX - vehicle.x) * cellSize };
-    } else {
-        let minY = 0;
-        for (let y = vehicle.y - 1; y >= 0; y--) {
-            if (y < 0 || y >= 6 || vehicle.x < 0 || vehicle.x >= 6) continue;
-            if (grid[y][vehicle.x]) {
-                minY = y + 1;
-                break;
-            }
-        }
-        let maxY = 6 - vehicle.length;
-        for (let y = vehicle.y + vehicle.length; y < 6; y++) {
-            if (y < 0 || y >= 6 || vehicle.x < 0 || vehicle.x >= 6) continue;
-            if (grid[y][vehicle.x]) {
-                maxY = y - vehicle.length;
-                break;
-            }
-        }
-        return { min: (minY - vehicle.y) * cellSize, max: (maxY - vehicle.y) * cellSize };
+function getEventPosition(e) {
+    if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
+    return { x: e.clientX, y: e.clientY };
 }
 
-function isMoveValid(vehicleIndex, newX, newY) {
-    const vehicle = gameState.vehicles[vehicleIndex];
-    const grid = createCollisionGrid(vehicleIndex);
-
-    if (vehicle.hz) {
-        if (newX < 0 || newX > 6 - vehicle.length) return false;
-    } else {
-        if (newY < 0 || newY > 6 - vehicle.length) return false;
-    }
-    
-    if (vehicle.hz) {
-        const y = vehicle.y;
-        const startX = Math.min(vehicle.x, newX);
-        const endX = Math.max(vehicle.x, newX);
-        for (let x = startX; x <= endX + vehicle.length - 1; x++) {
-            if (x >= vehicle.x && x < vehicle.x + vehicle.length) continue;
-            if (y < 0 || y >= 6 || x < 0 || x >= 6) continue;
-            if (grid[y][x]) return false;
-        }
-    } else {
-        const x = vehicle.x;
-        const startY = Math.min(vehicle.y, newY);
-        const endY = Math.max(vehicle.y, newY);
-        for (let y = startY; y <= endY + vehicle.length - 1; y++) {
-            if (y >= vehicle.y && y < vehicle.y + vehicle.length) continue;
-            if (y < 0 || y >= 6 || x < 0 || x >= 6) continue;
-            if (grid[y][x]) return false;
-        }
-    }
-    return true;
-}
-
-function handleInteractionStart(e, index) {
-    if (gameState.gameWon || dragState.isDragging) return;
-    
-    const vehicleEl = document.getElementById(`vehicle-${index}`);
-    if (!vehicleEl) return;
-    
+function handleInteractionStart(e, vehicleIndex) {
+    if (gameState.gameWon) return;
     e.preventDefault();
+
+    const vehicle = gameState.vehicles[vehicleIndex];
+    const vehicleEl = document.getElementById(`vehicle-${vehicleIndex}`);
+    if (!vehicleEl) return;
+
+    dragState.isDragging = true;
+    dragState.vehicleIndex = vehicleIndex;
+    dragState.vehicleEl = vehicleEl;
+    dragState.dragStartPos = getEventPosition(e);
     
-    dragState = {
-        isDragging: true,
-        vehicleIndex: index,
-        vehicleEl: vehicleEl,
-        dragStartPos: {
-            x: e.touches ? e.touches[0].clientX : e.clientX,
-            y: e.touches ? e.touches[0].clientY : e.clientY,
-        },
-        bounds: getDragBounds(index),
-    };
+    vehicleEl.style.transition = 'none';
+    vehicleEl.style.zIndex = '10';
+
+    const grid = createCollisionGrid(vehicleIndex);
     
-    dragState.vehicleEl.style.transition = 'none';
-    dragState.vehicleEl.style.zIndex = '10';
-    document.body.style.cursor = 'grabbing';
+    if (vehicle.hz) {
+        let minX = vehicle.x;
+        while (minX > 0 && !grid[vehicle.y][minX - 1]) {
+            minX--;
+        }
+        let maxX = vehicle.x;
+        while (maxX < (6 - vehicle.length) && !grid[vehicle.y][maxX + vehicle.length]) {
+            maxX++;
+        }
+        dragState.bounds.min = (minX - vehicle.x) * gameState.cellSize;
+        dragState.bounds.max = (maxX - vehicle.x) * gameState.cellSize;
+    } else {
+        let minY = vehicle.y;
+        while (minY > 0 && !grid[minY - 1][vehicle.x]) {
+            minY--;
+        }
+        let maxY = vehicle.y;
+        while (maxY < (6 - vehicle.length) && !grid[maxY + vehicle.length][vehicle.x]) {
+            maxY++;
+        }
+        dragState.bounds.min = (minY - vehicle.y) * gameState.cellSize;
+        dragState.bounds.max = (maxY - vehicle.y) * gameState.cellSize;
+    }
+
+    document.addEventListener('mousemove', handleInteractionMove);
+    document.addEventListener('mouseup', handleInteractionEnd);
+    document.addEventListener('touchmove', handleInteractionMove, { passive: false });
+    document.addEventListener('touchend', handleInteractionEnd);
 }
 
 function handleInteractionMove(e) {
     if (!dragState.isDragging) return;
+    e.preventDefault();
 
-    const event = e.touches ? e.touches[0] : e;
-    const deltaX = event.clientX - dragState.dragStartPos.x;
-    const deltaY = event.clientY - dragState.dragStartPos.y;
+    const currentPos = getEventPosition(e);
     const vehicle = gameState.vehicles[dragState.vehicleIndex];
+    let delta;
 
     if (vehicle.hz) {
-        const clampedDeltaX = Math.max(dragState.bounds.min, Math.min(deltaX, dragState.bounds.max));
-        dragState.vehicleEl.style.transform = `translateX(${clampedDeltaX}px)`;
+        delta = currentPos.x - dragState.dragStartPos.x;
+        delta = Math.max(dragState.bounds.min, Math.min(delta, dragState.bounds.max));
+        dragState.vehicleEl.style.transform = `translateX(${delta}px)`;
     } else {
-        const clampedDeltaY = Math.max(dragState.bounds.min, Math.min(deltaY, dragState.bounds.max));
-        dragState.vehicleEl.style.transform = `translateY(${clampedDeltaY}px)`;
+        delta = currentPos.y - dragState.dragStartPos.y;
+        delta = Math.max(dragState.bounds.min, Math.min(delta, dragState.bounds.max));
+        dragState.vehicleEl.style.transform = `translateY(${delta}px)`;
     }
 }
 
-function handleInteractionEnd() {
+function handleInteractionEnd(e) {
     if (!dragState.isDragging) return;
+    
+    document.removeEventListener('mousemove', handleInteractionMove);
+    document.removeEventListener('mouseup', handleInteractionEnd);
+    document.removeEventListener('touchmove', handleInteractionMove);
+    document.removeEventListener('touchend', handleInteractionEnd);
+    
+    const vehicle = gameState.vehicles[dragState.vehicleIndex];
+    const vehicleEl = dragState.vehicleEl;
+    let delta = 0;
+    
+    const transform = vehicleEl.style.transform;
+    if (transform) {
+        const match = transform.match(/-?[\d.]+/);
+        if (match) delta = parseFloat(match[0]);
+    }
+    
+    const cellsMoved = Math.round(delta / gameState.cellSize);
 
-    const { vehicleEl, vehicleIndex } = dragState;
-    const vehicle = gameState.vehicles[vehicleIndex];
-
-    if (!vehicleEl) {
-        dragState.isDragging = false;
-        return;
+    // Instantly move to the final position without animation to prevent "bounce"
+    vehicleEl.style.transition = 'none'; 
+    vehicleEl.style.transform = 'none';
+    
+    if (cellsMoved !== 0) {
+        if (vehicle.hz) {
+            vehicle.x += cellsMoved;
+        } else {
+            vehicle.y += cellsMoved;
+        }
+        gameState.moves++;
+        movesDisplayEl.textContent = gameState.moves;
     }
 
-    const transform = vehicleEl.style.transform;
-    const transformValue = (transform.match(/-?\d+\.?\d*/g) || ['0'])[0];
-    const delta = Number(transformValue);
+    // Apply the final snapped position
+    vehicleEl.style.top = `calc(100%/6 * ${vehicle.y} + 2px)`;
+    vehicleEl.style.left = `calc(100%/6 * ${vehicle.x} + 2px)`;
+    
+    // Force a reflow to ensure the styles are applied before re-enabling transition
+    vehicleEl.offsetHeight; 
 
-    let targetX = vehicle.x;
-    let targetY = vehicle.y;
+    // Re-enable transitions for future animations
+    vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
+    vehicleEl.style.zIndex = 'auto';
 
-    if (vehicle.hz) {
-        targetX = Math.round((vehicle.x * gameState.cellSize + delta) / gameState.cellSize);
-    } else {
-        targetY = Math.round((vehicle.y * gameState.cellSize + delta) / gameState.cellSize);
+    if (cellsMoved !== 0) {
+        checkWinCondition();
     }
 
     dragState.isDragging = false;
-    document.body.style.cursor = 'default';
-    vehicleEl.style.zIndex = '0';
-
-    const moved = targetX !== vehicle.x || targetY !== vehicle.y;
-    const isValid = moved ? isMoveValid(vehicleIndex, targetX, targetY) : false;
-
-    if (!isValid) {
-        targetX = vehicle.x;
-        targetY = vehicle.y;
-    }
-
-    vehicleEl.style.transition = 'transform 0.2s ease';
-    if (vehicle.hz) {
-        const finalDelta = (targetX - vehicle.x) * gameState.cellSize;
-        vehicleEl.style.transform = `translateX(${finalDelta}px)`;
-    } else {
-        const finalDelta = (targetY - vehicle.y) * gameState.cellSize;
-        vehicleEl.style.transform = `translateY(${finalDelta}px)`;
-    }
-
-    setTimeout(() => {
-        if (isValid) {
-            gameState.vehicles[vehicleIndex].x = targetX;
-            gameState.vehicles[vehicleIndex].y = targetY;
-            gameState.moves++;
-            checkWinCondition();
-        }
-        
-        if (!gameState.gameWon) {
-            render();
-        }
-
-    }, 200);
+    dragState.vehicleIndex = -1;
+    dragState.vehicleEl = null;
 }
 
 function checkWinCondition() {
-    if (gameState.gameWon) return;
-    const redCar = gameState.vehicles[0];
-    if (redCar.hz && redCar.x + redCar.length >= 6) {
-        winGame();
-    }
-}
-
-function winGame() {
-    gameState.gameWon = true;
-
-    // --- Update Scores and Unlocked Levels ---
-    const level = gameState.levelIndex;
-    const moves = gameState.moves;
-    const oldBest = gameState.bestScores[level];
-    
-    let isNewBest = false;
-    if (oldBest === undefined || oldBest === null || moves < oldBest) {
-        gameState.bestScores[level] = moves;
-        saveBestScores();
-        isNewBest = true;
-    }
-
-    const nextLevelIndex = gameState.levelIndex + 1;
-    if (nextLevelIndex > gameState.highestUnlockedLevel && nextLevelIndex < levels.length) {
-        gameState.highestUnlockedLevel = nextLevelIndex;
-        saveHighestUnlockedLevel();
-    }
-
-    // --- Animate Player Car ---
-    const playerCarEl = document.getElementById('vehicle-0');
-    const redCar = gameState.vehicles[0];
-
-    if (playerCarEl) {
-        playerCarEl.style.transition = 'none';
-        playerCarEl.style.transform = '';
-        playerCarEl.style.top = `calc(100%/6 * ${redCar.y} + 2px)`;
-        playerCarEl.style.left = `calc(100%/6 * ${redCar.x} + 2px)`;
-        void playerCarEl.offsetWidth; 
-        playerCarEl.classList.add('animate-win');
-    }
-    
-    // --- Update and Show Win Modal ---
-    setTimeout(() => {
-        winMovesEl.textContent = moves;
-        if (isNewBest) {
-            winMessageEl.textContent = 'New Best Score!';
-            winBestScoreEl.style.display = 'none';
-        } else {
-            winMessageEl.textContent = '';
-            winBestScoreValueEl.textContent = oldBest;
-            winBestScoreEl.style.display = 'block';
+    const playerVehicle = gameState.vehicles[0];
+    if (playerVehicle.x + playerVehicle.length >= 6) {
+        gameState.gameWon = true;
+        
+        const vehicleEl = document.getElementById('vehicle-0');
+        if (vehicleEl) {
+            vehicleEl.classList.add('animate-win');
         }
-        winModalEl.classList.remove('hidden');
-        winModalEl.classList.add('flex');
-    }, 500);
+        
+        const oldBest = gameState.bestScores[gameState.levelIndex];
+        if (oldBest === undefined || gameState.moves < oldBest) {
+            gameState.bestScores[gameState.levelIndex] = gameState.moves;
+            saveBestScores();
+        }
+
+        if (gameState.levelIndex === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < levels.length - 1) {
+            gameState.highestUnlockedLevel++;
+            saveHighestUnlockedLevel();
+        }
+        
+        setTimeout(showWinModal, 400);
+    }
 }
 
-function populateLevelSelect() {
+function showWinModal() {
+    winMovesEl.textContent = gameState.moves;
+    const bestScore = gameState.bestScores[gameState.levelIndex];
+    winBestScoreValueEl.textContent = bestScore;
+    
+    if (gameState.moves === bestScore && (levels[gameState.levelIndex].length > 3)) { // Don't show for very easy levels
+        winMessageEl.textContent = "New Best Score!";
+        winBestScoreEl.classList.add('text-yellow-300');
+    } else {
+        winMessageEl.textContent = "Level Complete!";
+        winBestScoreEl.classList.remove('text-yellow-300');
+    }
+
+    modalNextBtn.disabled = gameState.levelIndex >= levels.length - 1;
+
+    winModalEl.classList.remove('hidden');
+    winModalEl.classList.add('flex');
+}
+
+function populateLevelSelectModal() {
     levelGridEl.innerHTML = '';
     for (let i = 0; i < levels.length; i++) {
         const button = document.createElement('button');
-        button.dataset.levelIndex = i;
-        button.className = 'relative ';
-
-        if (i <= gameState.highestUnlockedLevel) {
-            button.className += 'aspect-square w-full bg-slate-600 rounded-md text-lg font-bold hover:bg-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400';
-            let buttonHTML = `<span>${i + 1}</span>`;
-            const bestScore = gameState.bestScores[i];
-            if (bestScore !== undefined && bestScore !== null) {
-                buttonHTML += `<span class="best-score-display">${bestScore}</span>`;
-            }
-            button.innerHTML = buttonHTML;
+        const isUnlocked = i <= gameState.highestUnlockedLevel;
+        
+        if (isUnlocked) {
+            button.className = 'aspect-square flex items-center justify-center bg-slate-600 rounded-md hover:bg-slate-500 transition-colors text-lg relative font-semibold';
+            button.innerHTML = `<span>${i + 1}</span>`;
             button.addEventListener('click', () => {
                 loadLevel(i);
-                closeLevelSelect();
+                closeLevelSelectModal();
             });
+            const bestScore = gameState.bestScores[i];
+            if (bestScore !== undefined) {
+                const scoreDisplay = document.createElement('span');
+                scoreDisplay.className = 'best-score-display';
+                scoreDisplay.textContent = `★${bestScore}`;
+                button.appendChild(scoreDisplay);
+            }
         } else {
-            button.className += 'level-button-locked aspect-square w-full bg-slate-700/50 rounded-md text-lg font-bold text-slate-500 cursor-not-allowed flex items-center justify-center';
-            button.disabled = true;
-            const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg>`;
-            button.innerHTML = lockIcon;
+             button.className = 'aspect-square flex items-center justify-center bg-slate-700/50 rounded-md text-slate-500 cursor-not-allowed level-button-locked relative';
+             button.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>${i + 1}</span>`;
         }
         levelGridEl.appendChild(button);
     }
 }
 
-function openLevelSelect() {
-    populateLevelSelect();
+function openLevelSelectModal() {
+    populateLevelSelectModal();
     levelSelectModalEl.classList.remove('hidden');
     levelSelectModalEl.classList.add('flex');
 }
 
-function closeLevelSelect() {
+function closeLevelSelectModal() {
     levelSelectModalEl.classList.remove('flex');
     levelSelectModalEl.classList.add('hidden');
 }
 
+function init() {
+    try {
+        const savedLevel = parseInt(localStorage.getItem('block2lock_currentLevel'), 10);
+        const savedUnlocked = parseInt(localStorage.getItem('block2lock_highestUnlockedLevel'), 10);
+        const savedScores = JSON.parse(localStorage.getItem('block2lock_bestScores'));
 
-function setupEventListeners() {
+        if (!isNaN(savedLevel) && savedLevel < levels.length) gameState.levelIndex = savedLevel;
+        if (!isNaN(savedUnlocked)) gameState.highestUnlockedLevel = savedUnlocked;
+        if (Array.isArray(savedScores)) gameState.bestScores = savedScores;
+    } catch (e) {
+        console.error("Couldn't load saved data.", e);
+    }
+    
+    try {
+        const savedTheme = localStorage.getItem('block2lock_theme');
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+            setTheme(savedTheme);
+        } else {
+            setTheme('dark');
+        }
+    } catch (e) {
+        console.error('Failed to load theme from localStorage:', e);
+        setTheme('dark');
+    }
+    
     prevBtn.addEventListener('click', () => loadLevel(gameState.levelIndex - 1));
     nextBtn.addEventListener('click', () => loadLevel(gameState.levelIndex + 1));
     resetBtn.addEventListener('click', () => loadLevel(gameState.levelIndex));
     modalNextBtn.addEventListener('click', () => {
-        if (gameState.levelIndex < levels.length - 1) {
+        if(gameState.levelIndex < levels.length - 1) {
             loadLevel(gameState.levelIndex + 1);
         }
+        winModalEl.classList.add('hidden');
     });
-    
-    window.addEventListener('mousemove', handleInteractionMove);
-    window.addEventListener('mouseup', handleInteractionEnd);
-    window.addEventListener('touchmove', handleInteractionMove, { passive: false });
-    window.addEventListener('touchend', handleInteractionEnd);
 
-    levelSelectBtn.addEventListener('click', openLevelSelect);
-    closeLevelSelectBtn.addEventListener('click', closeLevelSelect);
-    levelSelectModalEl.addEventListener('click', (e) => {
-        if (e.target === levelSelectModalEl) {
-            closeLevelSelect();
+    levelSelectBtn.addEventListener('click', openLevelSelectModal);
+    closeLevelSelectBtn.addEventListener('click', closeLevelSelectModal);
+    themeToggleBtn.addEventListener('click', toggleTheme);
+
+    function updateCellSize() {
+        if (boardEl) {
+            gameState.cellSize = boardEl.clientWidth / 6;
         }
-    });
-    
-    const resizeObserver = new ResizeObserver(updateCellSize);
-    resizeObserver.observe(boardEl);
+    }
+    window.addEventListener('resize', updateCellSize);
+    updateCellSize();
+
+    // Give the board its own stacking context, higher than the cutout.
+    boardEl.style.zIndex = 12;
+
+    // Create exit visuals if they don't exist
+    if (!document.querySelector('.exit-cutout')) {
+        const exitTop = 'calc(100%/6 * 2)';
+        const exitHeight = 'calc(100%/6)';
+
+        // This element creates the "cutout" by matching the body background
+        // and covering the right padding (the "fence") of the game container.
+        const exitCutout = document.createElement('div');
+        exitCutout.className = 'exit-cutout absolute right-0 w-3';
+        exitCutout.style.top = exitTop;
+        exitCutout.style.height = exitHeight;
+        exitCutout.style.zIndex = 11;
+        gameContainerEl.appendChild(exitCutout);
+
+        // This is the EXIT sign, positioned outside in the margin area.
+        const exitSign = document.createElement('div');
+        exitSign.className = 'exit-sign absolute right-[-5rem] w-16 flex flex-col items-center justify-center bg-green-700 rounded-md text-white font-bold text-xs z-20';
+        exitSign.innerHTML = 'EXIT <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>';
+        exitSign.style.top = exitTop;
+        exitSign.style.height = exitHeight;
+        gameContainerEl.appendChild(exitSign);
+
+        // This mask element hides the car after it passes the sign.
+        const maskEl = document.createElement('div');
+        maskEl.className = 'exit-mask absolute left-full ml-12 w-screen';
+        maskEl.style.top = exitTop;
+        maskEl.style.height = exitHeight;
+        maskEl.style.zIndex = 18;
+        gameContainerEl.appendChild(maskEl);
+    }
+
+    loadLevel(gameState.levelIndex);
 }
 
-function updateCellSize() {
-    if (!boardEl || !gameContainerEl) return;
-
-    const oldCutout = gameContainerEl.querySelector('.exit-cutout');
-    if (oldCutout) oldCutout.remove();
-    const oldSign = gameContainerEl.querySelector('.exit-sign');
-    if (oldSign) oldSign.remove();
-
-    const boardWidth = boardEl.offsetWidth;
-    gameState.cellSize = boardWidth / 6;
-
-    if(boardWidth === 0) return;
-
-    const actualCellSize = (boardWidth - (5 * 4) - (2 * 4)) / 6; 
-    const cutoutHeight = actualCellSize * 1.4;
-    const gameContainerPadding = 8;
-    const boardPadding = 4;
-    const gap = 4;
-    
-    const exitLaneCenterY = gameContainerPadding + boardPadding + (2 * (actualCellSize + gap)) + (actualCellSize / 2);
-    const cutoutTop = exitLaneCenterY - (cutoutHeight / 2);
-    const signHeight = actualCellSize > 4 ? actualCellSize - 4 : 0;
-    const signTop = exitLaneCenterY - (signHeight / 2);
-    
-    const cutoutEl = document.createElement('div');
-    cutoutEl.className = "exit-cutout absolute w-2 bg-slate-900";
-    cutoutEl.style.right = '0';
-    cutoutEl.style.height = `${cutoutHeight}px`;
-    cutoutEl.style.top = `${cutoutTop}px`;
-
-    const signEl = document.createElement('div');
-    signEl.className = "exit-sign absolute flex flex-col items-center justify-center bg-green-700 text-white font-bold rounded-md px-2 py-1 shadow-lg text-xs";
-    signEl.setAttribute('aria-hidden', 'true');
-    signEl.style.left = '100%';
-    signEl.style.marginLeft = '10px';
-    signEl.style.top = `${signTop}px`;
-    signEl.style.height = `${signHeight}px`;
-    signEl.style.minWidth = '45px';
-    signEl.innerHTML = `
-        <span class="tracking-wider text-sm">EXIT</span>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-        </svg>
-    `;
-
-    gameContainerEl.appendChild(cutoutEl);
-    gameContainerEl.appendChild(signEl);
-}
-
-function init() {
-    const savedLevel = localStorage.getItem('block2lock_currentLevel');
-    const savedHighestLevel = localStorage.getItem('block2lock_highestUnlockedLevel');
-    const savedBestScores = localStorage.getItem('block2lock_bestScores');
-
-    gameState.highestUnlockedLevel = savedHighestLevel ? parseInt(savedHighestLevel, 10) : 0;
-    gameState.bestScores = savedBestScores ? JSON.parse(savedBestScores) : [];
-    
-    // DEBUG: Unlock all levels. Comment this line out for production.
-    //gameState.highestUnlockedLevel = levels.length - 1; 
-    const initialLevel = savedLevel ? parseInt(savedLevel, 10) : 0;
-    
-    setupEventListeners();
-    populateLevelSelect();
-
-    requestAnimationFrame(() => {
-        updateCellSize();
-        // Make sure we don't load a level that should be locked
-        loadLevel(Math.min(initialLevel, gameState.highestUnlockedLevel));
-    });
-}
-
-// Start the game
 init();
