@@ -1,12 +1,12 @@
-const CACHE_NAME = 'block2lock-v2'; // Bumped version
+const CACHE_NAME = 'block2lock-v3'; // Bumped version for new assets
 const assetsToCache = [
   '/',
   '/index.html',
   '/main.js',
   '/levels.js',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/icon-192.svg',
+  '/icon-512.svg'
 ];
 
 self.addEventListener('install', event => {
@@ -14,7 +14,10 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(assetsToCache);
+        // Use addAll with a catch to prevent one failed asset from breaking the whole cache
+        return cache.addAll(assetsToCache).catch(error => {
+          console.error('Failed to cache assets during install:', error);
+        });
       })
   );
 });
@@ -36,6 +39,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // We only handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -43,7 +51,10 @@ self.addEventListener('fetch', event => {
         if (response) {
           return response;
         }
+
         // Not in cache - fetch from network
+        // Important: Don't cache new resources on the fly for this app
+        // as all assets should be pre-cached.
         return fetch(event.request);
       })
   );

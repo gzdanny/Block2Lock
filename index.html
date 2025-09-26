@@ -5,51 +5,138 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Block2Lock</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#1F1F1F">
     <style>
+        /* --- Tailwind CSS Inlined --- */
+        *,::before,::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e5e7eb }
+        html { line-height: 1.5; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+        body { margin: 0; line-height: inherit; }
+        h1,h2,p,span,button { margin: 0; padding: 0; }
+        h1,h2 { font-size: inherit; font-weight: inherit; }
+        button { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; color: inherit; margin: 0; padding: 0; text-transform: none; background-color: transparent; background-image: none; cursor: pointer; }
+        button:focus { outline: 1px dotted; outline: 5px auto -webkit-focus-ring-color; }
+        .font-sans { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+        .hidden { display: none; }
+        .fixed { position: fixed; }
+        .absolute { position: absolute; }
+        .relative { position: relative; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .top-2 { top: 0.5rem; }
+        .right-2 { right: 0.5rem; }
+        .z-10 { z-index: 10; }
+        .z-50 { z-index: 50; }
+        .m-4 { margin: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .min-h-screen { min-height: 100vh; }
+        .w-full { width: 100%; }
+        .max-w-lg { max-width: 32rem; }
+        .max-w-md { max-width: 28rem; }
+        .max-w-xl { max-width: 36rem; }
+        .max-w-2xl { max-width: 42rem; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-4 { gap: 1rem; }
+        .gap-3 { gap: 0.75rem; }
+        .aspect-square { aspect-ratio: 1 / 1; }
+        .overflow-y-auto { overflow-y: auto; }
+        .rounded-md { border-radius: 0.375rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .bg-black { background-color: rgb(0 0 0); }
+        .bg-opacity-75 { --tw-bg-opacity: 0.75; background-color: rgb(0 0 0 / var(--tw-bg-opacity)); }
+        .p-4 { padding: 1rem; }
+        .p-2 { padding: 0.5rem; }
+        .p-1 { padding: 0.25rem; }
+        .p-6 { padding: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .pr-2 { padding-right: 0.5rem; }
+        .text-center { text-align: center; }
+        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-md { font-size: 1rem; line-height: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .tracking-tight { letter-spacing: -0.025em; }
+        .text-white { color: rgb(255 255 255); }
+        .text-white\/50 { color: rgb(255 255 255 / 0.5); }
+        .shadow-2xl { box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); }
+        .transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+        .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        .grid-rows-6 { grid-template-rows: repeat(6, minmax(0, 1fr)); }
+        .h-8 { height: 2rem; }
+        .w-8 { width: 2rem; }
+        .cursor-grab { cursor: grab; }
+        .cursor-pointer { cursor: pointer; }
+        .cursor-not-allowed { cursor: not-allowed; }
+        .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+        .focus\:ring-2:focus { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); }
+        .focus\:ring-slate-500:focus { --tw-ring-color: #64748b; }
+        .focus\:ring-green-400:focus { --tw-ring-color: #4ade80; }
+        .max-h-\[60vh\] { max-height: 60vh; }
+        .w-\[90\%\] { width: 90%; }
+        @media (min-width: 640px) { .sm\:w-full { width: 100%; } .sm\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+        @media (min-width: 768px) { .md\:max-w-xl { max-width: 36rem; } .md\:text-5xl { font-size: 3rem; line-height: 1; } .md\:grid-cols-8 { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+        @media (min-width: 1024px) { .lg\:max-w-2xl { max-width: 42rem; } }
+
+        /* --- Custom App Styles --- */
         body {
             /* --- Dark Theme Variables (Default) --- */
-            --bg-main: #0f172a;
+            --bg-main: #1F1F1F;
             --text-primary: #e2e8f0;
             --text-secondary: #94a3b8;
 
-            --bg-container: #475569;
-            --bg-board: #1e293b;
-            --bg-grid-lines: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
-            --shadow-board: inset 0 2px 4px rgba(0,0,0,0.1);
+            --bg-container: #3D3D3D;
+            --border-container: #2C2C2C;
+            --bg-board: #2C2C2C;
+            --bg-grid-lines: rgba(255, 255, 255, 0.05);
+            --shadow-board: inset 0 2px 4px rgba(0,0,0,0.2);
 
-            --bg-button: #334155;
-            --bg-button-hover: #475569;
+            --bg-button: #3D3D3D;
+            --bg-button-hover: #4f4f4f;
             --text-button: var(--text-primary);
             --border-button: transparent;
             --shadow-button: none;
             --shadow-button-hover-offset: 0;
             --shadow-button-active-offset: 0;
-            --bg-button-disabled: rgba(51, 65, 85, 0.5); /* slate-700/50 opacity-50 */
-            --text-button-disabled: #64748b; /* slate-500 */
+            --bg-button-disabled: rgba(61, 61, 61, 0.5);
+            --text-button-disabled: #64748b;
 
-            --bg-modal: #1e293b;
-            --border-modal: transparent;
-            --text-win: #4ade80;
-            --text-best-score: #fde047;
-            --text-best-score-highlight: #fde047;
-            --bg-win-button: #16a34a;
-            --bg-win-button-hover: #22c55e;
+            --bg-modal: #3D3D3D;
+            --border-modal: #2C2C2C;
+            --text-win: #10B981;
+            --text-best-score: #FBBF24;
+            --text-best-score-highlight: #FBBF24;
+            --bg-win-button: #F43F5E;
+            --bg-win-button-hover: #FB7185;
             --text-win-button: #fff;
             
-            --bg-level-item: #475569;
-            --bg-level-item-hover: #64748b;
+            --bg-level-item: #3D3D3D;
+            --bg-level-item-hover: #4f4f4f;
             --text-level-item: var(--text-primary);
-            --bg-level-locked: rgba(51, 65, 85, 0.5);
+            --bg-level-locked: rgba(61, 61, 61, 0.5);
             --text-level-locked: #64748b;
-            --text-best-score-badge: #facc15;
+            --text-best-score-badge: #FBBF24;
             --stroke-best-score-badge: 1px rgba(0,0,0,0.3);
             --shadow-best-score-badge: none;
-
-            --bg-exit-sign: #166534;
-            --text-exit-sign: #fff;
-            --stroke-exit-sign-icon: #fff;
 
             --shadow-vehicle: inset 0 0 0 1px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.2);
             --shadow-player: 0 0 12px 2px rgba(244, 63, 94, 0.5), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -58,82 +145,79 @@
                 linear-gradient(45deg, rgba(0,0,0,.1) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.1) 75%);
 
             /* --- Vehicle Colors --- */
-            --color-player: #f43f5e; /* rose-500 */
-            --color-block-a: #06b6d4; /* cyan-500 */
-            --color-block-b: #4f46e5; /* indigo-600 */
-            --color-block-c: #14b8a6; /* teal-500 */
-            --color-block-d: #8b5cf6; /* purple-600 */
-            --color-block-e: #0ea5e9; /* sky-600 */
-            --color-block-f: #3b82f6; /* blue-600 */
-            --color-block-g: #7c3aed; /* violet-600 */
-            --color-block-h: #0e7490; /* cyan-700 */
-            --color-block-i: #6366f1; /* indigo-500 */
-            --color-block-j: #0284c7; /* sky-500 */
-            --color-block-k: #a855f7; /* purple-500 */
+            --color-player: #F43F5E;
+            --color-block-a: #3B82F6;
+            --color-block-b: #10B981;
+            --color-block-c: #FBBF24;
+            --color-block-d: #8B5CF6;
+            --color-block-e: #0EA5E9;
+            --color-block-f: #22D3EE;
+            --color-block-g: #A855F7;
+            --color-block-h: #3B82F6; /* repeat */
+            --color-block-i: #10B981; /* repeat */
+            --color-block-j: #FBBF24; /* repeat */
+            --color-block-k: #8B5CF6; /* repeat */
         }
 
         /* --- Light Theme Variable Overrides --- */
         body.light {
-            --bg-main: #eef3f0;
-            --text-primary: #5a7d76;
-            --text-secondary: #5a7d76;
+            --bg-main: #FAFAFA;
+            --text-primary: #374151;
+            --text-secondary: #9CA3AF;
 
-            --bg-container: #d3e3d9;
-            --bg-board: #cdd7d2;
-            --bg-grid-lines: #e3ebe7;
-            --shadow-board: inset 0 2px 4px rgba(0,0,0,0.06);
+            --bg-container: #FFFFFF;
+            --border-container: #EAEAEA;
+            --bg-board: #F3F4F6;
+            --bg-grid-lines: rgba(0, 0, 0, 0.07);
+            --shadow-board: inset 0 1px 2px rgba(0,0,0,0.05);
 
-            --bg-button: #b2d8c3;
-            --bg-button-hover: #c5e0d1;
-            --text-button: #5a7d76;
-            --border-button: 1px solid #a1c9b4;
-            --shadow-button: 0 2px 0 #9ac0ae;
+            --bg-button: #FFFFFF;
+            --bg-button-hover: #F9FAFB;
+            --text-button: var(--text-primary);
+            --border-button: 1px solid #E5E7EB;
+            --shadow-button: 0 1px 0 #D8D8D8;
             --shadow-button-hover-offset: -1px;
             --shadow-button-active-offset: 1px;
-            --bg-button-disabled: #e0e0e0;
-            --text-button-disabled: #bdbdbd;
+            --bg-button-disabled: #F3F4F6;
+            --text-button-disabled: #D1D5DB;
 
-            --bg-modal: #eef3f0;
-            --border-modal: 2px solid #c1d6cc;
-            --text-win: #2e7d32;
-            --text-best-score: #e65100;
-            --text-best-score-highlight: #e65100;
-            --bg-win-button: #66bb6a;
-            --bg-win-button-hover: #81c784;
+            --bg-modal: #FFFFFF;
+            --border-modal: 1px solid #EAEAEA;
+            --text-win: #DC2626;
+            --text-best-score: #F97316;
+            --text-best-score-highlight: #F97316;
+            --bg-win-button: #EF4444;
+            --bg-win-button-hover: #F87171;
             --text-win-button: white;
 
-            --bg-level-item: #dcedc8;
-            --bg-level-item-hover: #c5e1a5;
-            --text-level-item: #5a7d76;
-            --bg-level-locked: #e0e0e0;
-            --text-level-locked: #bdbdbd;
-            --text-best-score-badge: #e65100;
+            --bg-level-item: #F9FAFB;
+            --bg-level-item-hover: #F3F4F6;
+            --text-level-item: var(--text-primary);
+            --bg-level-locked: #E5E7EB;
+            --text-level-locked: #9CA3AF;
+            --text-best-score-badge: #F97316;
             --stroke-best-score-badge: 0;
-            --shadow-best-score-badge: 1px 1px 1px rgba(255,255,255,0.7);
-            
-            --bg-exit-sign: #b2d8c3;
-            --text-exit-sign: #5a7d76;
-            --stroke-exit-sign-icon: #5a7d76;
+            --shadow-best-score-badge: none;
 
-            --shadow-vehicle: inset 0 0 0 1px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.1);
-            --shadow-player: inset 0 0 0 1px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.1);
+            --shadow-vehicle: inset 0 0 0 1px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-player: inset 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.04);
             --pattern-player: 
                 linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%),
                 linear-gradient(-45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%);
             
             /* --- Light Vehicle Colors --- */
-            --color-player: #f7c4b1;
-            --color-block-a: #c5e0d1;
-            --color-block-b: #f7efc4;
-            --color-block-c: #c5e0d1;
-            --color-block-d: #f7efc4;
-            --color-block-e: #c5e0d1;
-            --color-block-f: #f7efc4;
-            --color-block-g: #c5e0d1;
-            --color-block-h: #f7efc4;
-            --color-block-i: #c5e0d1;
-            --color-block-j: #f7efc4;
-            --color-block-k: #c5e0d1;
+            --color-player: #EF4444;
+            --color-block-a: #FCA5A5;
+            --color-block-b: #FCD5CE;
+            --color-block-c: #FDE68A;
+            --color-block-d: #A7F3D0;
+            --color-block-e: #BFDBFE;
+            --color-block-f: #E9D5FF;
+            --color-block-g: #FED7AA;
+            --color-block-h: #FCA5A5;
+            --color-block-i: #FCD5CE;
+            --color-block-j: #FDE68A;
+            --color-block-k: #A7F3D0;
         }
 
         /* --- Base Styles using Variables --- */
@@ -149,6 +233,9 @@
         header .text-slate-400 {
             color: var(--text-secondary);
         }
+        .text-secondary {
+            color: var(--text-secondary);
+        }
         .player-car-pattern {
             background-image: var(--pattern-player);
             background-size: 20px 20px;
@@ -161,24 +248,20 @@
         #game-container {
             background-color: var(--bg-container);
             border-radius: 12px;
-            border: 2px solid transparent;
+            border: 1px solid var(--border-container, transparent);
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         #board {
             background-color: var(--bg-board);
             box-shadow: var(--shadow-board);
             border-radius: 10px;
-        }
-        #board .grid-cols-6 > div { /* Grid cell */
-            background-color: var(--bg-grid-lines);
-            border-radius: 4px;
-        }
-        .exit-sign {
-            background-color: var(--bg-exit-sign);
-            color: var(--text-exit-sign);
-        }
-        .exit-sign svg {
-            stroke: var(--stroke-exit-sign-icon);
+            
+            /* New CSS Grid Background */
+            background-image: 
+                repeating-linear-gradient(var(--bg-grid-lines) 0 1px, transparent 1px 100%),
+                repeating-linear-gradient(90deg, var(--bg-grid-lines) 0 1px, transparent 1px 100%);
+            background-size: calc(100%/6) calc(100%/6);
+            background-position: -1px -1px; /* Offset to hide outer borders */
         }
         
         /* Buttons */
@@ -290,30 +373,24 @@
             line-height: 1;
             font-weight: bold;
         }
-        .exit-cutout, .exit-mask {
-            background-color: var(--bg-main);
-            transition: background-color 0.3s ease;
-            will-change: background-color; /* Explicitly tell the browser to optimize this animation */
-        }
     </style>
 </head>
   <body class="font-sans">
     <main class="min-h-screen flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-lg md:max-w-xl lg:max-w-2xl">
+        <div class="w-[90%] sm:w-full max-w-lg md:max-w-xl lg:max-w-2xl">
             <header class="text-center mb-4">
                 <h1 class="text-4xl md:text-5xl font-bold tracking-tight">Block<span id="theme-toggle" class="cursor-pointer" title="Toggle Theme">2</span>Lock</h1>
                 <div class="flex justify-between items-center mt-4 text-lg text-slate-400 px-2">
                     <span>Level: <span id="level-display">1</span></span>
                     <button id="level-select-btn" class="px-3 py-1 rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Select Level</button>
-                    <span>Moves: <span id="moves-display">0</span></span>
+                    <span>Moves: <span id="moves-display" aria-live="polite">0</span></span>
                 </div>
             </header>
             
-            <div id="game-container" class="p-2 rounded-lg relative mr-20">
+            <div id="game-container" class="p-2 rounded-lg relative">
                  <div id="board" class="aspect-square w-full rounded-md p-1 relative">
                     <!-- Grid and vehicles will be generated by JS -->
                  </div>
-                 <!-- Exit cutout, sign, and mask will be injected here by JS -->
             </div>
 
             <div class="flex justify-center items-center gap-4 mt-6">

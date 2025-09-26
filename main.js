@@ -98,14 +98,6 @@ function loadLevel(index) {
 function render() {
     if (!boardEl) return;
     boardEl.innerHTML = '';
-
-    const gridContainer = document.createElement('div');
-    gridContainer.className = 'absolute inset-0 grid grid-cols-6 grid-rows-6 gap-1';
-    for (let i = 0; i < 36; i++) {
-        const cell = document.createElement('div');
-        gridContainer.appendChild(cell);
-    }
-    boardEl.appendChild(gridContainer);
     
     // Use relative units for gaps to ensure proportional scaling.
     // These values correspond to Tailwind's `gap-1` and `p-1`.
@@ -131,12 +123,26 @@ function render() {
         vehicleEl.style.top = `calc(100%/6 * ${v.y} + ${halfGap})`;
         vehicleEl.style.left = `calc(100%/6 * ${v.x} + ${halfGap})`;
         vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
+        vehicleEl.style.zIndex = '5'; // Ensure vehicles are above the EXIT text
         
         vehicleEl.addEventListener('mousedown', (e) => handleInteractionStart(e, i));
         vehicleEl.addEventListener('touchstart', (e) => handleInteractionStart(e, i), { passive: false });
         
         boardEl.appendChild(vehicleEl);
     });
+
+    // Add new, simpler EXIT text indicator
+    const exitTextEl = document.createElement('div');
+    exitTextEl.className = 'absolute flex items-center justify-center text-center font-bold text-secondary text-sm';
+    exitTextEl.textContent = 'EXIT →';
+    exitTextEl.style.width = 'calc(100%/6)';
+    exitTextEl.style.height = 'calc(100%/6)';
+    // Position in 3rd row (y=2), 6th column (x=5)
+    exitTextEl.style.top = 'calc(100%/6 * 2)';
+    exitTextEl.style.left = 'calc(100%/6 * 5)';
+    exitTextEl.style.zIndex = '1'; // Low z-index to be behind blocks
+    boardEl.appendChild(exitTextEl);
+
 
     levelDisplayEl.textContent = gameState.levelIndex + 1;
     movesDisplayEl.textContent = gameState.moves;
@@ -283,7 +289,7 @@ function handleInteractionEnd(e) {
 
     // Re-enable transitions for future animations
     vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
-    vehicleEl.style.zIndex = 'auto';
+    vehicleEl.style.zIndex = '5'; // Return to normal z-index
 
     if (cellsMoved !== 0) {
         checkWinCondition();
@@ -427,50 +433,6 @@ function init() {
     }
     window.addEventListener('resize', updateCellSize);
     updateCellSize();
-
-    // Give the board its own stacking context, higher than the cutout.
-    boardEl.style.zIndex = 12;
-
-    // Create exit visuals if they don't exist
-    if (!document.querySelector('.exit-cutout')) {
-        const exitHeight = 'calc(100% / 6 * 1.4)';
-        // To vertically center the 1.4x height element on the 3rd row (index 2),
-        // we start at the row's center (2.5) and subtract half the element's height (1.4 / 2 = 0.7).
-        // 2.5 - 0.7 = 1.8.
-        const exitTop = 'calc(100% / 6 * 1.8)';
-
-        // This element creates the "cutout" by matching the body background
-        // and covering the right padding (the "fence") of the game container.
-        const exitCutout = document.createElement('div');
-        exitCutout.className = 'exit-cutout absolute';
-        // The container has p-2 (0.5rem) and the board has p-1 (0.25rem).
-        // The total width needed to cover the gap is 0.75rem.
-        exitCutout.style.width = '0.75rem';
-        // The container has p-2 (0.5rem), so the content area ends 0.5rem from the edge.
-        // We position the cutout's left edge there, and its 0.75rem width will
-        // cover the container's padding (0.5rem) and the board's padding (0.25rem).
-        exitCutout.style.left = 'calc(100% - 0.5rem)';
-        exitCutout.style.top = exitTop;
-        exitCutout.style.height = exitHeight;
-        exitCutout.style.zIndex = 11;
-        gameContainerEl.appendChild(exitCutout);
-
-        // This is the EXIT sign, positioned outside in the margin area.
-        const exitSign = document.createElement('div');
-        exitSign.className = 'exit-sign absolute right-[-5rem] w-16 flex flex-col items-center justify-center rounded-md text-white font-bold text-xs z-20';
-        exitSign.innerHTML = 'EXIT <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>';
-        exitSign.style.top = exitTop;
-        exitSign.style.height = exitHeight;
-        gameContainerEl.appendChild(exitSign);
-
-        // This mask element hides the car after it passes the sign.
-        const maskEl = document.createElement('div');
-        maskEl.className = 'exit-mask absolute left-full ml-12 w-screen';
-        maskEl.style.top = exitTop;
-        maskEl.style.height = exitHeight;
-        maskEl.style.zIndex = 18;
-        gameContainerEl.appendChild(maskEl);
-    }
 
     loadLevel(gameState.levelIndex);
 }
