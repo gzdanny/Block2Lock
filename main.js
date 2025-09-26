@@ -456,6 +456,8 @@ function init() {
     const savedHighestLevel = localStorage.getItem('block2lock_highestUnlockedLevel');
 
     gameState.highestUnlockedLevel = savedHighestLevel ? parseInt(savedHighestLevel, 10) : 0;
+    // DEBUG: Unlock all levels. Comment this line out for production.
+    gameState.highestUnlockedLevel = levels.length - 1; 
     const initialLevel = savedLevel ? parseInt(savedLevel, 10) : 0;
     
     setupEventListeners();
