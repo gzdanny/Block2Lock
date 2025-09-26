@@ -16,6 +16,9 @@ const nextBtn = document.getElementById('next-btn');
 const resetBtn = document.getElementById('reset-btn');
 const winModalEl = document.getElementById('win-modal');
 const winMovesEl = document.getElementById('win-moves');
+const winMessageEl = document.getElementById('win-message');
+const winBestScoreEl = document.getElementById('win-best-score');
+const winBestScoreValueEl = document.getElementById('win-best-score-value');
 const modalNextBtn = document.getElementById('modal-next-btn');
 const levelSelectBtn = document.getElementById('level-select-btn');
 const levelSelectModalEl = document.getElementById('level-select-modal');
@@ -31,6 +34,7 @@ let gameState = {
     gameWon: false,
     cellSize: 0,
     highestUnlockedLevel: 0,
+    bestScores: [],
 };
 
 // --- Drag State ---
@@ -48,6 +52,10 @@ function saveCurrentLevel() {
 
 function saveHighestUnlockedLevel() {
     localStorage.setItem('block2lock_highestUnlockedLevel', gameState.highestUnlockedLevel.toString());
+}
+
+function saveBestScores() {
+    localStorage.setItem('block2lock_bestScores', JSON.stringify(gameState.bestScores));
 }
 
 
@@ -315,12 +323,25 @@ function checkWinCondition() {
 function winGame() {
     gameState.gameWon = true;
 
+    // --- Update Scores and Unlocked Levels ---
+    const level = gameState.levelIndex;
+    const moves = gameState.moves;
+    const oldBest = gameState.bestScores[level];
+    
+    let isNewBest = false;
+    if (oldBest === undefined || oldBest === null || moves < oldBest) {
+        gameState.bestScores[level] = moves;
+        saveBestScores();
+        isNewBest = true;
+    }
+
     const nextLevelIndex = gameState.levelIndex + 1;
     if (nextLevelIndex > gameState.highestUnlockedLevel && nextLevelIndex < levels.length) {
         gameState.highestUnlockedLevel = nextLevelIndex;
         saveHighestUnlockedLevel();
     }
 
+    // --- Animate Player Car ---
     const playerCarEl = document.getElementById('vehicle-0');
     const redCar = gameState.vehicles[0];
 
@@ -332,9 +353,18 @@ function winGame() {
         void playerCarEl.offsetWidth; 
         playerCarEl.classList.add('animate-win');
     }
-
+    
+    // --- Update and Show Win Modal ---
     setTimeout(() => {
-        winMovesEl.textContent = gameState.moves;
+        winMovesEl.textContent = moves;
+        if (isNewBest) {
+            winMessageEl.textContent = 'New Best Score!';
+            winBestScoreEl.style.display = 'none';
+        } else {
+            winMessageEl.textContent = '';
+            winBestScoreValueEl.textContent = oldBest;
+            winBestScoreEl.style.display = 'block';
+        }
         winModalEl.classList.remove('hidden');
         winModalEl.classList.add('flex');
     }, 500);
@@ -345,16 +375,22 @@ function populateLevelSelect() {
     for (let i = 0; i < levels.length; i++) {
         const button = document.createElement('button');
         button.dataset.levelIndex = i;
+        button.className = 'relative ';
 
         if (i <= gameState.highestUnlockedLevel) {
-            button.className = 'aspect-square w-full bg-slate-600 rounded-md text-lg font-bold hover:bg-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400';
-            button.innerHTML = `<span>${i + 1}</span>`;
+            button.className += 'aspect-square w-full bg-slate-600 rounded-md text-lg font-bold hover:bg-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400';
+            let buttonHTML = `<span>${i + 1}</span>`;
+            const bestScore = gameState.bestScores[i];
+            if (bestScore !== undefined && bestScore !== null) {
+                buttonHTML += `<span class="best-score-display">${bestScore}</span>`;
+            }
+            button.innerHTML = buttonHTML;
             button.addEventListener('click', () => {
                 loadLevel(i);
                 closeLevelSelect();
             });
         } else {
-            button.className = 'level-button-locked aspect-square w-full bg-slate-700/50 rounded-md text-lg font-bold text-slate-500 cursor-not-allowed relative flex items-center justify-center';
+            button.className += 'level-button-locked aspect-square w-full bg-slate-700/50 rounded-md text-lg font-bold text-slate-500 cursor-not-allowed flex items-center justify-center';
             button.disabled = true;
             const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg>`;
             button.innerHTML = lockIcon;
@@ -454,8 +490,11 @@ function updateCellSize() {
 function init() {
     const savedLevel = localStorage.getItem('block2lock_currentLevel');
     const savedHighestLevel = localStorage.getItem('block2lock_highestUnlockedLevel');
+    const savedBestScores = localStorage.getItem('block2lock_bestScores');
 
     gameState.highestUnlockedLevel = savedHighestLevel ? parseInt(savedHighestLevel, 10) : 0;
+    gameState.bestScores = savedBestScores ? JSON.parse(savedBestScores) : [];
+    
     // DEBUG: Unlock all levels. Comment this line out for production.
     gameState.highestUnlockedLevel = levels.length - 1; 
     const initialLevel = savedLevel ? parseInt(savedLevel, 10) : 0;
