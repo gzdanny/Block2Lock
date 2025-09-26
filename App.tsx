@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { levels } from './levels';
 import { Board } from './Board';
@@ -49,18 +48,20 @@ const WinModal = ({ isOpen, moves, onNextLevel }) => {
 
 export default function App() {
     const [levelIndex, setLevelIndex] = useState(() => {
-        const savedLevel = localStorage.getItem('rushHourLevel');
+        const savedLevel = localStorage.getItem('block2lockLevel');
         return savedLevel ? parseInt(savedLevel, 10) : 0;
     });
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [moves, setMoves] = useState(0);
-    const [isWon, setIsWon] = useState(false);
+    const [gameWon, setGameWon] = useState(false);
+    const [showWinModal, setShowWinModal] = useState(false);
 
     const loadLevel = useCallback((index: number) => {
         const levelData = JSON.parse(JSON.stringify(levels[index % levels.length]));
         setVehicles(levelData);
         setMoves(0);
-        setIsWon(false);
+        setGameWon(false);
+        setShowWinModal(false);
     }, []);
 
     useEffect(() => {
@@ -68,7 +69,7 @@ export default function App() {
     }, [levelIndex, loadLevel]);
 
     useEffect(() => {
-        localStorage.setItem('rushHourLevel', levelIndex.toString());
+        localStorage.setItem('block2lockLevel', levelIndex.toString());
     }, [levelIndex]);
 
     const handleReset = useCallback(() => {
@@ -87,18 +88,31 @@ export default function App() {
         }
     }, [levelIndex]);
 
-    const checkWinCondition = useCallback((updatedVehicles: Vehicle[]) => {
-        const redCar = updatedVehicles[0];
-        // The win condition is met if the red car's rightmost edge has reached or passed column 6.
-        if (redCar.hz && redCar.x + redCar.length >= 6) {
-            setIsWon(true);
+    useEffect(() => {
+        if (gameWon || vehicles.length === 0) {
+            return;
         }
-    }, []);
+
+        const redCar = vehicles[0];
+        if (redCar.hz && redCar.x + redCar.length >= 6) {
+            setGameWon(true);
+        }
+    }, [vehicles, gameWon]);
+
+    useEffect(() => {
+        if (gameWon) {
+            const timer = setTimeout(() => {
+                setShowWinModal(true);
+            }, 500); // Wait for animation to finish
+            return () => clearTimeout(timer);
+        }
+    }, [gameWon]);
+    
 
     const handleMove = useCallback((vehicleIndex: number, newX: number, newY: number) => {
         const currentVehicle = vehicles[vehicleIndex];
         
-        if(isWon || (currentVehicle.x === newX && currentVehicle.y === newY)) return;
+        if(gameWon || (currentVehicle.x === newX && currentVehicle.y === newY)) return;
 
         // Boundary checks
         if (currentVehicle.hz) {
@@ -159,16 +173,15 @@ export default function App() {
             );
             setVehicles(newVehicles);
             setMoves(m => m + 1);
-            checkWinCondition(newVehicles);
         }
-    }, [vehicles, isWon, checkWinCondition]);
+    }, [vehicles, gameWon]);
 
     return (
         <>
             <main className="min-h-screen flex flex-col items-center justify-center p-4 font-sans">
                 <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl">
                     <header className="text-center mb-4">
-                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-200">Rush Hour</h1>
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-200">Block2Lock</h1>
                         <div className="flex justify-between items-center mt-4 text-lg text-slate-400 px-2">
                             <span>Level: {levelIndex + 1}</span>
                             <span>Moves: {moves}</span>
@@ -179,6 +192,7 @@ export default function App() {
                         vehicles={vehicles} 
                         onMove={handleMove} 
                         vehicleColors={vehicleColors}
+                        gameWon={gameWon}
                     />
                     <Controls 
                         onReset={handleReset} 
@@ -188,12 +202,21 @@ export default function App() {
                         maxLevel={levels.length} 
                     />
                 </div>
-                <WinModal isOpen={isWon} moves={moves} onNextLevel={handleNextLevel} />
+                <WinModal isOpen={showWinModal} moves={moves} onNextLevel={handleNextLevel} />
             </main>
             <style>{`
                 .player-car-pattern {
                     background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.15) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.15) 75%, transparent 75%, transparent);
                     background-size: 16px 16px;
+                }
+                @keyframes slide-out {
+                    to {
+                        transform: translateX(150%);
+                    }
+                }
+                .animate-win {
+                    animation: slide-out 0.4s ease-in forwards;
+                    z-index: 20; 
                 }
             `}</style>
         </>

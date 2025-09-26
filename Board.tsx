@@ -1,9 +1,8 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import type { Vehicle } from './types';
 import { VehicleComponent } from './Vehicle';
 
-export const Board = ({ levelIndex, vehicles, onMove, vehicleColors }) => {
+export const Board = ({ levelIndex, vehicles, onMove, vehicleColors, gameWon }) => {
     const boardRef = useRef<HTMLDivElement>(null);
     const [cellSize, setCellSize] = useState(0);
     const [boardReady, setBoardReady] = useState(false);
@@ -77,6 +76,7 @@ export const Board = ({ levelIndex, vehicles, onMove, vehicleColors }) => {
                         color={vehicleColors[index % vehicleColors.length]}
                         allVehicles={vehicles}
                         isPlayer={index === 0}
+                        gameWon={gameWon && index === 0}
                     />
                 ))}
             </div>

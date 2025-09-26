@@ -1,5 +1,5 @@
 {
-  "name": "Rush Hour Traffic Game",
-  "description": "A classic sliding block puzzle game where the player must navigate a red car through a traffic jam to the exit. The game features hundreds of levels with increasing difficulty. Players can move cars and trucks horizontally or vertically to clear a path.",
+  "name": "Block2Lock",
+  "description": "A classic sliding block puzzle game, inspired by the Meizu M8 classic, where the player must navigate a special block out of a grid. This modern revival challenges you to clear a path by moving other blocks horizontally or vertically through hundreds of levels.",
   "requestFramePermissions": []
 }

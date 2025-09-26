@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Vehicle } from './types';
 
-export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allVehicles, isPlayer }) => {
+export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allVehicles, isPlayer, gameWon }) => {
     const [isDragging, setIsDragging] = useState(false);
     const dragStartPos = useRef({ x: 0, y: 0 });
     const vehicleRef = useRef<HTMLDivElement>(null);
@@ -63,6 +63,7 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
     }, [allVehicles, vehicle, index, cellSize]);
 
     const handleInteractionStart = (e) => {
+        if (gameWon) return;
         if (animationEndTimeout.current) {
             clearTimeout(animationEndTimeout.current);
             animationEndTimeout.current = null;
@@ -172,13 +173,14 @@ export const VehicleComponent = ({ vehicle, index, onMove, cellSize, color, allV
 
     const vehicleColor = isPlayer ? 'bg-red-600' : color;
     const patternClass = isPlayer ? 'player-car-pattern' : '';
+    const winAnimationClass = gameWon ? 'animate-win' : '';
 
     return (
         <div 
             ref={vehicleRef}
             onMouseDown={handleInteractionStart}
             onTouchStart={handleInteractionStart}
-            className={`absolute rounded-md flex items-center justify-center font-bold text-white/50 shadow-lg cursor-grab ${isDragging ? 'z-10 shadow-2xl' : ''} ${vehicleColor} ${patternClass}`}
+            className={`absolute rounded-md flex items-center justify-center font-bold text-white/50 shadow-lg cursor-grab ${isDragging ? 'z-10 shadow-2xl' : ''} ${vehicleColor} ${patternClass} ${winAnimationClass}`}
             style={{
                 width: vehicle.hz ? `calc(100%/6 * ${vehicle.length} - 4px)` : `calc(100%/6 - 4px)`,
                 height: vehicle.hz ? `calc(100%/6 - 4px)` : `calc(100%/6 * ${vehicle.length} - 4px)`,
