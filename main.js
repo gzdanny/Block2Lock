@@ -1,3 +1,4 @@
+
 import { levels } from './levels.js';
 
 const vehicleColors = [
@@ -75,12 +76,12 @@ function loadLevel(index) {
 function render() {
     if (!boardEl) return;
     boardEl.innerHTML = '';
-    
+
     const gridContainer = document.createElement('div');
-    gridContainer.className = 'grid grid-cols-6 grid-rows-6 w-full h-full gap-1';
+    gridContainer.className = 'absolute inset-0 grid grid-cols-6 grid-rows-6 gap-1';
     for (let i = 0; i < 36; i++) {
         const cell = document.createElement('div');
-        cell.className = 'bg-slate-700/50 rounded-sm';
+        cell.className = 'bg-slate-900/50 rounded-[2px]';
         gridContainer.appendChild(cell);
     }
     boardEl.appendChild(gridContainer);
@@ -496,7 +497,7 @@ function init() {
     gameState.bestScores = savedBestScores ? JSON.parse(savedBestScores) : [];
     
     // DEBUG: Unlock all levels. Comment this line out for production.
-    gameState.highestUnlockedLevel = levels.length - 1; 
+    //gameState.highestUnlockedLevel = levels.length - 1; 
     const initialLevel = savedLevel ? parseInt(savedLevel, 10) : 0;
     
     setupEventListeners();
