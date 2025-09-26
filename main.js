@@ -17,6 +17,11 @@ const resetBtn = document.getElementById('reset-btn');
 const winModalEl = document.getElementById('win-modal');
 const winMovesEl = document.getElementById('win-moves');
 const modalNextBtn = document.getElementById('modal-next-btn');
+const levelSelectBtn = document.getElementById('level-select-btn');
+const levelSelectModalEl = document.getElementById('level-select-modal');
+const levelGridEl = document.getElementById('level-grid');
+const closeLevelSelectBtn = document.getElementById('close-level-select-btn');
+
 
 // --- Game State ---
 let gameState = {
@@ -25,6 +30,7 @@ let gameState = {
     vehicles: [],
     gameWon: false,
     cellSize: 0,
+    highestUnlockedLevel: 0,
 };
 
 // --- Drag State ---
@@ -36,12 +42,18 @@ let dragState = {
     bounds: { min: 0, max: 0 },
 };
 
-function saveLevel() {
-    localStorage.setItem('block2lockLevel', gameState.levelIndex.toString());
+function saveCurrentLevel() {
+    localStorage.setItem('block2lock_currentLevel', gameState.levelIndex.toString());
 }
+
+function saveHighestUnlockedLevel() {
+    localStorage.setItem('block2lock_highestUnlockedLevel', gameState.highestUnlockedLevel.toString());
+}
+
 
 function loadLevel(index) {
     if (index < 0 || index >= levels.length) return;
+    if (index > gameState.highestUnlockedLevel) return;
 
     gameState.levelIndex = index;
     gameState.moves = 0;
@@ -49,7 +61,7 @@ function loadLevel(index) {
     gameState.gameWon = false;
 
     render();
-    saveLevel();
+    saveCurrentLevel();
 }
 
 function render() {
@@ -91,7 +103,7 @@ function render() {
     movesDisplayEl.textContent = gameState.moves;
 
     prevBtn.disabled = gameState.levelIndex === 0;
-    nextBtn.disabled = gameState.levelIndex >= levels.length - 1;
+    nextBtn.disabled = gameState.levelIndex >= gameState.highestUnlockedLevel || gameState.levelIndex >= levels.length - 1;
     
     winModalEl.classList.remove('flex');
     winModalEl.classList.add('hidden');
@@ -302,22 +314,22 @@ function checkWinCondition() {
 
 function winGame() {
     gameState.gameWon = true;
+
+    const nextLevelIndex = gameState.levelIndex + 1;
+    if (nextLevelIndex > gameState.highestUnlockedLevel && nextLevelIndex < levels.length) {
+        gameState.highestUnlockedLevel = nextLevelIndex;
+        saveHighestUnlockedLevel();
+    }
+
     const playerCarEl = document.getElementById('vehicle-0');
     const redCar = gameState.vehicles[0];
 
     if (playerCarEl) {
-        // "Bake in" the transform from the snap animation into the top/left styles
-        // before starting the win animation. This provides a stable starting point.
-        playerCarEl.style.transition = 'none'; // Turn off transitions
-        playerCarEl.style.transform = '';     // Clear the old transform
+        playerCarEl.style.transition = 'none';
+        playerCarEl.style.transform = '';
         playerCarEl.style.top = `calc(100%/6 * ${redCar.y} + 2px)`;
         playerCarEl.style.left = `calc(100%/6 * ${redCar.x} + 2px)`;
-
-        // We need to force a reflow for the browser to register the new position
-        // before applying the animation class.
         void playerCarEl.offsetWidth; 
-
-        // Now, add the win animation class. It will start from the correct final position.
         playerCarEl.classList.add('animate-win');
     }
 
@@ -327,6 +339,41 @@ function winGame() {
         winModalEl.classList.add('flex');
     }, 500);
 }
+
+function populateLevelSelect() {
+    levelGridEl.innerHTML = '';
+    for (let i = 0; i < levels.length; i++) {
+        const button = document.createElement('button');
+        button.dataset.levelIndex = i;
+
+        if (i <= gameState.highestUnlockedLevel) {
+            button.className = 'aspect-square w-full bg-slate-600 rounded-md text-lg font-bold hover:bg-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400';
+            button.innerHTML = `<span>${i + 1}</span>`;
+            button.addEventListener('click', () => {
+                loadLevel(i);
+                closeLevelSelect();
+            });
+        } else {
+            button.className = 'level-button-locked aspect-square w-full bg-slate-700/50 rounded-md text-lg font-bold text-slate-500 cursor-not-allowed relative flex items-center justify-center';
+            button.disabled = true;
+            const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg>`;
+            button.innerHTML = lockIcon;
+        }
+        levelGridEl.appendChild(button);
+    }
+}
+
+function openLevelSelect() {
+    populateLevelSelect();
+    levelSelectModalEl.classList.remove('hidden');
+    levelSelectModalEl.classList.add('flex');
+}
+
+function closeLevelSelect() {
+    levelSelectModalEl.classList.remove('flex');
+    levelSelectModalEl.classList.add('hidden');
+}
+
 
 function setupEventListeners() {
     prevBtn.addEventListener('click', () => loadLevel(gameState.levelIndex - 1));
@@ -342,6 +389,14 @@ function setupEventListeners() {
     window.addEventListener('mouseup', handleInteractionEnd);
     window.addEventListener('touchmove', handleInteractionMove, { passive: false });
     window.addEventListener('touchend', handleInteractionEnd);
+
+    levelSelectBtn.addEventListener('click', openLevelSelect);
+    closeLevelSelectBtn.addEventListener('click', closeLevelSelect);
+    levelSelectModalEl.addEventListener('click', (e) => {
+        if (e.target === levelSelectModalEl) {
+            closeLevelSelect();
+        }
+    });
     
     const resizeObserver = new ResizeObserver(updateCellSize);
     resizeObserver.observe(boardEl);
@@ -397,15 +452,19 @@ function updateCellSize() {
 }
 
 function init() {
-    const savedLevel = localStorage.getItem('block2lockLevel');
+    const savedLevel = localStorage.getItem('block2lock_currentLevel');
+    const savedHighestLevel = localStorage.getItem('block2lock_highestUnlockedLevel');
+
+    gameState.highestUnlockedLevel = savedHighestLevel ? parseInt(savedHighestLevel, 10) : 0;
     const initialLevel = savedLevel ? parseInt(savedLevel, 10) : 0;
     
     setupEventListeners();
+    populateLevelSelect();
 
-    // Defer initial calculation until after the first paint to ensure layout is complete
     requestAnimationFrame(() => {
         updateCellSize();
-        loadLevel(initialLevel);
+        // Make sure we don't load a level that should be locked
+        loadLevel(Math.min(initialLevel, gameState.highestUnlockedLevel));
     });
 }
 
