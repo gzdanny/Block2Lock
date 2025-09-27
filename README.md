@@ -56,7 +56,36 @@ Now, we'll create the native Android project folder and copy our web assets into
     ```bash
     npx cap sync android
     ```
+## 📱 How to Force Portrait Mode in a Capacitor Android App
 
+To lock your Capacitor-based app in portrait mode on Android, modify the `AndroidManifest.xml` file as follows:
+
+### 🔧 Step-by-step
+
+1. Open `android/app/src/main/AndroidManifest.xml`
+2. Locate the `<activity>` tag for `BridgeActivity`
+3. Add or update the following attributes:
+
+```xml
+<activity
+    android:name="ai.dsgr.block2lock"
+    android:exported="true"
+    android:screenOrientation="portrait"
+    android:configChanges="orientation|keyboardHidden|screenSize">
+    <!-- other settings -->
+</activity>
+```
+
+### 📝 Explanation of Each Line
+
+- `android:screenOrientation="portrait"`  
+  → Forces the app to stay in portrait mode regardless of device rotation.
+
+- `android:exported="true"`  
+  → Required for Android 12+ to declare whether this activity can be launched by other apps. Needed if intent filters are present.
+
+- `android:configChanges="orientation|keyboardHidden|screenSize"`  
+  → (Optional) Prevents the activity from being destroyed and recreated when these configuration changes occur (e.g. rotation, keyboard popup), which helps avoid flickering or state loss.
 ---
 
 ## Step 4: Open the Project in Android Studio
