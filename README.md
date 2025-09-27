@@ -20,8 +20,8 @@ Open your terminal or command prompt, navigate to the directory where you want t
 
 ```bash
 # Replace with your actual repository URL
-git clone https://github.com/L9s-G/Block2Lock-web.git
-cd Block2Lock-web
+git clone https://github.com/gzdanny/Block2Lock.git
+cd Block2Lock
 npm install
 ```
 This downloads the project and installs the Capacitor CLI and other required packages defined in `package.json`.
