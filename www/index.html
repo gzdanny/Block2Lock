@@ -373,6 +373,44 @@
             line-height: 1;
             font-weight: bold;
         }
+
+        /* Hidden Switch Text Styles (theme-aware) */
+        .hidden-switch-text {
+            display: block;
+            text-align: center;
+            padding: 4px 8px;
+            font-size: 0.6rem;
+            line-height: 1.2;
+            color: var(--text-secondary);
+            background-color: var(--bg-container);
+            border: 1px solid var(--border-container);
+            border-radius: 4px;
+            opacity: 0; /* initial hidden */
+            margin-top: 8px;
+            white-space: pre-wrap;
+            max-width: 80vw;
+            font-family: monospace;
+            transition: opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .hidden-switch-text.visible {
+            opacity: 0.5; /* faint visible when unlocked */
+        }
+
+        body.light .hidden-switch-text {
+            color: var(--text-secondary);
+            background-color: var(--bg-container);
+            border: 1px solid var(--border-container);
+        }
+
+        /* --- Initial Hidden State --- */
+        .hidden-switch-text {
+            display: none;
+        }
+        .hidden-switch-text.visible {
+            display: block;
+        }
+
     </style>
 </head>
   <body class="font-sans">
@@ -398,6 +436,9 @@
                 <button id="reset-btn" class="px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Reset</button>
                 <button id="next-btn" class="px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">Next</button>
             </div>
+
+            <!-- Hidden Switch Text (initially hidden, controlled by JS) -->
+            <div id="hidden-switch-text" class="hidden-switch-text">Αυτό το παιχνίδι είναι ένα δώρο για την αγαπημένη μου κόρη, την Andrea, που είναι η πιο έξυπνη και αξιαγάπητη στον κόσμο.</div>
         </div>
     </main>
     
@@ -426,5 +467,6 @@
     </div>
 
     <script type="module" src="./main.js"></script>
-  </body>
+
+    </body>
 </html>
