@@ -179,3 +179,97 @@ This error (e.g., `invalid source release: 21`) can occur if Android Studio's Gr
     1.  Go to `File` > `Settings` > `Build, Execution, Deployment` > `Build Tools` > `Gradle`.
     2.  In the **Gradle JDK** dropdown, select a JDK of version **21**. If one isn't available, click "Download JDK..." and have Android Studio download and install it for you.
     3.  Click `OK` and let Gradle sync again.
+ 
+---
+
+# 🎨 Further Personalizing Your APK
+
+These tweaks help polish your app’s identity and improve user experience.
+
+---
+
+## 🖼️ 1. Change the APK Icon
+
+Capacitor does not control the final APK icon — it's defined in the native Android project.
+
+### 🔧 Steps:
+
+1. Replace the icon files in:
+
+   ```
+   android/app/src/main/res/mipmap-*/ic_launcher.png
+   ```
+
+   Recommended sizes:
+   - `mdpi`: 48×48
+   - `hdpi`: 72×72
+   - `xhdpi`: 96×96
+   - `xxhdpi`: 144×144
+   - `xxxhdpi`: 192×192
+
+2. Use [icon.kitchen](https://icon.kitchen/) to generate a complete set of launcher icons.  
+
+3. No need to change `AndroidManifest.xml` unless you rename the icon files.
+
+---
+
+## 🔢 2. Set the APK Version Number
+
+Capacitor’s `version` field is for web/PWA use. The actual APK version is defined in `build.gradle`.
+
+### 🔧 Steps:
+
+Open:
+
+```
+android/app/build.gradle
+```
+
+Edit:
+
+```groovy
+defaultConfig {
+    versionCode 3         // Integer, must increase with each release
+    versionName "1.0.2"   // User-visible version string
+}
+```
+
+---
+
+## 🚫 3. Remove or Simplify the Launch Screen
+
+Capacitor apps often show a default splash screen on startup. To disable it and launch directly into your game:
+
+### 🔧 Steps:
+
+1. Open:
+
+   ```
+   android/app/src/main/res/values/styles.xml
+   ```
+
+2. Replace this style:
+
+```xml
+<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+    <item name="android:background">@drawable/splash</item>
+</style>
+```
+
+With a minimal version:
+
+```xml
+<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+    <item name="android:background">@null</item> <!-- or use #000000 for black -->
+</style>
+```
+
+---
+
+## ✅ Result
+
+- Your app launches instantly into the main view.
+- No splash image or delay.
+- Custom icon and versioning are in place.
+
+---
