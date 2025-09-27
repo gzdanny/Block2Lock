@@ -129,7 +129,7 @@ This script will now automatically name your APK using the project name and the 
 
 ## Step 5.1: (Optional) Further Personalizing Your APK
 
-Before generating your final Release APK, you can [check this](https://github.com/gzdanny/Block2Lock/edit/main/README.md#-further-personalizing-your-apk) to see how to further customize it.
+Before generating your final Release APK, you can [check this](#-further-personalizing-your-apk) to see how to further customize it.
 
 ---
 
