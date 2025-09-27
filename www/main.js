@@ -31,7 +31,16 @@ let gameState = {
     cellSize: 0,
     highestUnlockedLevel: 0,
     bestScores: [],
+    isNewBest: false, // Add this flag
 };
+
+// --- Small helpers for null/number checks ---
+function isNullish(v) {
+    return v === undefined || v === null;
+}
+function isNumber(v) {
+    return typeof v === 'number' && !Number.isNaN(v);
+}
 
 // --- Helper Functions (defined early to avoid ReferenceError) ---
 function updateButtonStates() {
@@ -87,8 +96,10 @@ function saveHighestUnlockedLevel() {
 }
 
 function saveBestScores() {
+    // Clean up any null/undefined values before saving (replace with undefined to avoid persistence issues)
+    const cleanScores = gameState.bestScores.map(score => isNullish(score) ? undefined : score);
     try {
-        localStorage.setItem('block2lock_bestScores', JSON.stringify(gameState.bestScores));
+        localStorage.setItem('block2lock_bestScores', JSON.stringify(cleanScores));
     } catch(e) { console.error(e); }
 }
 
@@ -326,8 +337,10 @@ function checkWinCondition() {
             vehicleEl.classList.add('animate-win');
         }
         
-        const oldBest = gameState.bestScores[gameState.levelIndex];
-        if (oldBest === undefined || gameState.moves < oldBest) {
+    const oldBest = gameState.bestScores[gameState.levelIndex];
+    gameState.isNewBest = (isNullish(oldBest) || gameState.moves < oldBest); // Set flag for new best (first time or better score)
+        
+        if (gameState.isNewBest) {
             gameState.bestScores[gameState.levelIndex] = gameState.moves;
             saveBestScores();
         }
@@ -362,9 +375,12 @@ function hideWinModal() {
 function showWinModal() {
     winMovesEl.textContent = gameState.moves;
     const bestScore = gameState.bestScores[gameState.levelIndex];
-    winBestScoreValueEl.textContent = bestScore;
+    // Handle null/undefined: default to 0 if no score yet
+    const displayBest = isNumber(bestScore) ? bestScore : 0;
+    winBestScoreValueEl.textContent = displayBest;
     
-    if (gameState.moves === bestScore && (levels[gameState.levelIndex].length > 3)) { // Don't show for very easy levels
+    // Simplified logic: show "New Best Score!" only on first completion or strictly better score
+    if (gameState.isNewBest) {
         winMessageEl.textContent = "New Best Score!";
         winBestScoreEl.classList.add('text-yellow-300');
     } else {
@@ -394,24 +410,17 @@ function showWinModal() {
                 if (hiddenSwitchClickCount >= 3) {
                     if (gameState.highestUnlockedLevel === levels.length - 1) {
                         // Reset records
-                        gameState.highestUnlockedLevel = 0;
-                        gameState.bestScores = [];
-                        gameState.levelIndex = 0;
+                        gameState.highestUnlockedLevel = gameState.levelIndex + 1 < levels.length ? gameState.levelIndex + 1 : 0;
                         saveHighestUnlockedLevel();
-                        saveBestScores();
-                        saveCurrentLevel();
                         if (hiddenSwitchTextEl) hiddenSwitchTextEl.classList.remove('visible'); // hide
-                        loadLevel(0);
-                        hideWinModal();
                     } else {
                         // Unlock all levels and immediately go to next level for feedback
                         gameState.highestUnlockedLevel = levels.length - 1;
                         saveHighestUnlockedLevel();
                         if (hiddenSwitchTextEl) hiddenSwitchTextEl.classList.add('visible'); // show faint
-                        updateButtonStates();
-                        loadLevel(gameState.levelIndex + 1);
-                        hideWinModal();
                     }
+                    updateButtonStates();
+                    modalNextBtn.click(); // Use existing button logic to go to next level
                     hiddenSwitchClickCount = 0;
                     return;
                 }
@@ -428,6 +437,9 @@ function showWinModal() {
 
     winModalEl.classList.remove('hidden');
     winModalEl.classList.add('flex');
+
+    // Reset the flag after modal shows
+    gameState.isNewBest = false;
 }
 
 function populateLevelSelectModal() {
@@ -444,7 +456,8 @@ function populateLevelSelectModal() {
                 closeLevelSelectModal();
             });
             const bestScore = gameState.bestScores[i];
-            if (bestScore !== undefined) {
+            // Enhanced check: ensure it's a valid number, not null/undefined
+            if (isNumber(bestScore)) {
                 const scoreDisplay = document.createElement('span');
                 scoreDisplay.className = 'best-score-display';
                 scoreDisplay.textContent = `★${bestScore}`;
@@ -478,11 +491,14 @@ function init() {
     try {
         const savedLevel = parseInt(localStorage.getItem('block2lock_currentLevel'), 10);
         const savedUnlocked = parseInt(localStorage.getItem('block2lock_highestUnlockedLevel'), 10);
-        const savedScores = JSON.parse(localStorage.getItem('block2lock_bestScores'));
+        const savedScores = JSON.parse(localStorage.getItem('block2lock_bestScores') || '[]');
 
         if (!isNaN(savedLevel) && savedLevel < levels.length) gameState.levelIndex = savedLevel;
         if (!isNaN(savedUnlocked)) gameState.highestUnlockedLevel = savedUnlocked;
-        if (Array.isArray(savedScores)) gameState.bestScores = savedScores;
+        if (Array.isArray(savedScores)) {
+            // Clean up any null/undefined values during load (replace with undefined)
+            gameState.bestScores = savedScores.map(score => isNullish(score) ? undefined : score);
+        }
     } catch (e) {
         console.error("Couldn't load saved data.", e);
     }

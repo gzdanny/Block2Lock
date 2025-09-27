@@ -1,0 +1,1 @@
+http-server ".\www" -p 80 -c-1

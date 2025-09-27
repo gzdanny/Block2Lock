@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-    <rect width="512" height="512" rx="85" fill="#1F1F1F"/>
-    <g fill="#e2e8f0" font-family="sans-serif" font-weight="bold" text-anchor="middle">
-        <text x="170" y="298" font-size="213">B</text>
-        <text x="342" y="298" font-size="213">L</text>
-        <text x="256" y="160" font-size="106">2</text>
-    </g>
-</svg>
