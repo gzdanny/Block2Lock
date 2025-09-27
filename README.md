@@ -40,8 +40,6 @@ This crucial step creates the `capacitor.config.json` file which defines your ap
     *   **App Name:** `Block2Lock`
     *   **App ID:** `ai.dsgr.block2lock`
 
-3.  **Important:** The `capacitor.config.json` file included in this repository contains specific settings required for the Android build (like setting the Java version to 21). Ensure your file matches the one from the repository.
-
 ---
 
 ## Step 3: Add and Sync the Android Platform
@@ -121,7 +119,6 @@ An unsigned app cannot be installed for security reasons. We need to create a di
 5.  You will be returned to the previous screen with your new key's information filled in. You can check `Remember passwords` for convenience. Click **Next**.
 6.  **Select Build Variant:**
     *   Choose the **release** build variant.
-    *   Ensure both **V1 (Jar Signature)** and **V2 (Full APK Signature)** are checked.
     *   Click **Finish**.
 
 Android Studio will now build your signed APK. When it's done, a notification will appear in the bottom-right corner.
@@ -132,7 +129,7 @@ Android Studio will now build your signed APK. When it's done, a notification wi
 
 1.  Click the **locate** link in the notification popup.
 2.  This will open the project's output folder: `/android/app/release/`.
-3.  Inside, you will find your custom-named file (e.g., `Block2Lock-1.0-20240728.apk`).
+3.  Inside, you will find your custom-named file (e.g., `Block2Lock-1.0-20250928.apk`).
 4.  Transfer this file to your Android device (via USB, email, cloud storage, etc.).
 5.  On your phone, locate the file and tap to install. You may need to grant permission to "install from unknown sources".
 
