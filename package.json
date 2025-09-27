@@ -8,16 +8,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/L9s-G/Block2Lock-web.git"
+    "url": "git+https://github.com/gzdanny/Block2Lock.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/L9s-G/Block2Lock-web/issues"
+    "url": "https://github.com/gzdanny/Block2Lock/issues"
   },
-  "homepage": "https://github.com/L9s-G/Block2Lock-web#readme",
+  "homepage": "https://github.com/gzdanny/Block2Lock#readme",
   "dependencies": {
     "@capacitor/android": "^7.4.3",
     "@capacitor/core": "^7.4.3"
