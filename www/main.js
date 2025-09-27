@@ -33,6 +33,17 @@ let gameState = {
     bestScores: [],
 };
 
+// --- Helper Functions (defined early to avoid ReferenceError) ---
+function updateButtonStates() {
+    const isFirstLevel = gameState.levelIndex === 0;
+    const isLastLevel = gameState.levelIndex >= levels.length - 1;
+    const isHighestUnlocked = gameState.levelIndex >= gameState.highestUnlockedLevel;
+
+    prevBtn.disabled = isFirstLevel;
+    nextBtn.disabled = isLastLevel || isHighestUnlocked;
+    modalNextBtn.disabled = false; // Always enabled for seamless loop
+}
+
 // --- Drag State ---
 let dragState = {
     isDragging: false,
@@ -150,6 +161,11 @@ function render() {
     prevBtn.disabled = gameState.levelIndex === 0;
     nextBtn.disabled = gameState.levelIndex >= gameState.highestUnlockedLevel || gameState.levelIndex >= levels.length - 1;
     
+    // cleanup any visualViewport handlers and inline sizing
+    try {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+    } catch (e) {}
     winModalEl.classList.remove('flex');
     winModalEl.classList.add('hidden');
 }
@@ -325,6 +341,24 @@ function checkWinCondition() {
     }
 }
 
+let hiddenSwitchTextEl = null; // Now get from DOM by ID
+let hiddenSwitchClickCount = 0;
+let hiddenSwitchTimeout = null;
+let currentModalClickHandler = null;
+
+function hideWinModal() {
+    if (currentModalClickHandler) {
+        winModalEl.removeEventListener('click', currentModalClickHandler);
+        currentModalClickHandler = null;
+    }
+    try {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+    } catch (e) {}
+    winModalEl.classList.remove('flex');
+    winModalEl.classList.add('hidden');
+}
+
 function showWinModal() {
     winMovesEl.textContent = gameState.moves;
     const bestScore = gameState.bestScores[gameState.levelIndex];
@@ -338,7 +372,59 @@ function showWinModal() {
         winBestScoreEl.classList.remove('text-yellow-300');
     }
 
-    modalNextBtn.disabled = gameState.levelIndex >= levels.length - 1;
+    updateButtonStates(); // Use helper for consistency
+
+    // Prevent background from scrolling while modal is open
+    try {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+    } catch (e) {}
+
+    hiddenSwitchClickCount = 0;
+    const handleModalClick = (e) => {
+        if (e.target.closest('#win-modal')) {
+            // Only trigger on clicks to the 'You Win!' title (h2)
+            if (e.target.matches('h2') || e.target.closest('h2')) {
+                if (hiddenSwitchTimeout) {
+                    clearTimeout(hiddenSwitchTimeout);
+                    hiddenSwitchTimeout = null;
+                }
+                hiddenSwitchClickCount++;
+                
+                if (hiddenSwitchClickCount >= 3) {
+                    if (gameState.highestUnlockedLevel === levels.length - 1) {
+                        // Reset records
+                        gameState.highestUnlockedLevel = 0;
+                        gameState.bestScores = [];
+                        gameState.levelIndex = 0;
+                        saveHighestUnlockedLevel();
+                        saveBestScores();
+                        saveCurrentLevel();
+                        if (hiddenSwitchTextEl) hiddenSwitchTextEl.classList.remove('visible'); // hide
+                        loadLevel(0);
+                        hideWinModal();
+                    } else {
+                        // Unlock all levels and immediately go to next level for feedback
+                        gameState.highestUnlockedLevel = levels.length - 1;
+                        saveHighestUnlockedLevel();
+                        if (hiddenSwitchTextEl) hiddenSwitchTextEl.classList.add('visible'); // show faint
+                        updateButtonStates();
+                        loadLevel(gameState.levelIndex + 1);
+                        hideWinModal();
+                    }
+                    hiddenSwitchClickCount = 0;
+                    return;
+                }
+                
+                // Reset count if not consecutive (1s window)
+                hiddenSwitchTimeout = setTimeout(() => {
+                    hiddenSwitchClickCount = 0;
+                }, 1000);
+            }
+        }
+    };
+    currentModalClickHandler = handleModalClick;
+    winModalEl.addEventListener('click', handleModalClick);
 
     winModalEl.classList.remove('hidden');
     winModalEl.classList.add('flex');
@@ -365,8 +451,8 @@ function populateLevelSelectModal() {
                 button.appendChild(scoreDisplay);
             }
         } else {
-             button.className = 'aspect-square flex items-center justify-center rounded-md cursor-not-allowed level-button-locked relative';
-             button.innerHTML = `
+            button.className = 'aspect-square flex items-center justify-center rounded-md cursor-not-allowed level-button-locked relative';
+            button.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
@@ -387,6 +473,7 @@ function closeLevelSelectModal() {
     levelSelectModalEl.classList.add('hidden');
 }
 
+// In init(), create the Greek text element (initially hidden, appended to button row)
 function init() {
     try {
         const savedLevel = parseInt(localStorage.getItem('block2lock_currentLevel'), 10);
@@ -416,10 +503,9 @@ function init() {
     nextBtn.addEventListener('click', () => loadLevel(gameState.levelIndex + 1));
     resetBtn.addEventListener('click', () => loadLevel(gameState.levelIndex));
     modalNextBtn.addEventListener('click', () => {
-        if(gameState.levelIndex < levels.length - 1) {
-            loadLevel(gameState.levelIndex + 1);
-        }
-        winModalEl.classList.add('hidden');
+        const nextLevel = gameState.levelIndex < levels.length - 1 ? gameState.levelIndex + 1 : 0;
+        loadLevel(nextLevel);
+        hideWinModal();
     });
 
     levelSelectBtn.addEventListener('click', openLevelSelectModal);
@@ -433,6 +519,12 @@ function init() {
     }
     window.addEventListener('resize', updateCellSize);
     updateCellSize();
+
+    // Get the hidden switch text element from DOM (static in HTML)
+    hiddenSwitchTextEl = document.getElementById('hidden-switch-text');
+    if (hiddenSwitchTextEl) {
+        hiddenSwitchTextEl.classList.remove('visible'); // Ensure initial hidden
+    }
 
     loadLevel(gameState.levelIndex);
 }
