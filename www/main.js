@@ -8,6 +8,8 @@ const movesDisplayEl = document.getElementById('moves-display');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const resetBtn = document.getElementById('reset-btn');
+const undoBtn = document.getElementById('undo-btn'); // 新增：撤销按钮
+const replayBtn = document.getElementById('replay-btn'); // 新增：回放按钮
 const winModalEl = document.getElementById('win-modal');
 const winMovesEl = document.getElementById('win-moves');
 const winMessageEl = document.getElementById('win-message');
@@ -18,6 +20,7 @@ const levelSelectBtn = document.getElementById('level-select-btn');
 const levelSelectModalEl = document.getElementById('level-select-modal');
 const levelGridEl = document.getElementById('level-grid');
 const closeLevelSelectBtn = document.getElementById('close-level-select-btn');
+const bestScoreDisplayEl = document.getElementById('best-score-display');
 const themeToggleBtn = document.getElementById('theme-toggle');
 
 let currentTheme = 'dark';
@@ -31,7 +34,9 @@ let gameState = {
     cellSize: 0,
     highestUnlockedLevel: 0,
     bestScores: [],
-    isNewBest: false, // Add this flag
+    bestMoveHistories: [], // 新增：存储每个关卡的最佳移动历史
+    moveHistory: [], // 新增：存储当前关卡的移动历史
+    isNewBest: false,
 };
 
 // --- Small helpers for null/number checks ---
@@ -50,7 +55,20 @@ function updateButtonStates() {
 
     prevBtn.disabled = isFirstLevel;
     nextBtn.disabled = isLastLevel || isHighestUnlocked;
+    resetBtn.disabled = gameState.moves === 0;
+    undoBtn.disabled = gameState.moves === 0;
+    replayBtn.disabled = !gameState.bestMoveHistories[gameState.levelIndex];
+    levelSelectBtn.disabled = false;
     modalNextBtn.disabled = false; // Always enabled for seamless loop
+}
+
+function disableAllControls() {
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    resetBtn.disabled = true;
+    undoBtn.disabled = true;
+    replayBtn.disabled = true;
+    levelSelectBtn.disabled = true;
 }
 
 // --- Drag State ---
@@ -86,13 +104,13 @@ function toggleTheme() {
 function saveCurrentLevel() {
     try {
         localStorage.setItem('block2lock_currentLevel', gameState.levelIndex.toString());
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
 }
 
 function saveHighestUnlockedLevel() {
     try {
         localStorage.setItem('block2lock_highestUnlockedLevel', gameState.highestUnlockedLevel.toString());
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
 }
 
 function saveBestScores() {
@@ -100,27 +118,59 @@ function saveBestScores() {
     const cleanScores = gameState.bestScores.map(score => isNullish(score) ? undefined : score);
     try {
         localStorage.setItem('block2lock_bestScores', JSON.stringify(cleanScores));
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
 }
 
+function saveBestMoveHistories() {
+    try {
+        // 清理空值以避免存储问题
+        const cleanHistories = gameState.bestMoveHistories.map(h => Array.isArray(h) ? h : undefined);
+        localStorage.setItem('block2lock_bestMoveHistories', JSON.stringify(cleanHistories));
+    } catch (e) { console.error(e); }
+}
 
 function loadLevel(index) {
     if (index < 0 || index >= levels.length) return;
     if (index > gameState.highestUnlockedLevel) return;
 
+    // 恢复：重新加载记录，以确保在关卡切换时数据是最新的
+    // 这是必要的，因为此函数可能在任何时候被调用，需要确保gameState是最新的
+    try {
+        const savedScores = JSON.parse(localStorage.getItem('block2lock_bestScores') || '[]');
+        const savedHistories = JSON.parse(localStorage.getItem('block2lock_bestMoveHistories') || '[]');
+        gameState.bestScores = savedScores.map(score => isNullish(score) ? undefined : score);
+        gameState.bestMoveHistories = savedHistories.map(h => Array.isArray(h) ? h : undefined);
+    } catch (e) { console.error("Couldn't re-load saved histories during level load.", e); }
+
     gameState.levelIndex = index;
     gameState.moves = 0;
+    gameState.moveHistory = []; // 重置移动历史
     gameState.vehicles = JSON.parse(JSON.stringify(levels[index]));
     gameState.gameWon = false;
 
     render();
+    updateButtonStates();
     saveCurrentLevel();
+}
+
+/**
+ * Updates the DOM position of a single vehicle.
+ * @param {number} vehicleIndex The index of the vehicle to update.
+ */
+function updateVehiclePosition(vehicleIndex) {
+    const vehicle = gameState.vehicles[vehicleIndex];
+    const vehicleEl = document.getElementById(`vehicle-${vehicleIndex}`);
+    if (vehicleEl) {
+        const halfGap = '0.125rem';
+        vehicleEl.style.top = `calc(100%/6 * ${vehicle.y} + ${halfGap})`;
+        vehicleEl.style.left = `calc(100%/6 * ${vehicle.x} + ${halfGap})`;
+    }
 }
 
 function render() {
     if (!boardEl) return;
     boardEl.innerHTML = '';
-    
+
     // Use relative units for gaps to ensure proportional scaling.
     // These values correspond to Tailwind's `gap-1` and `p-1`.
     const gap = '0.25rem';
@@ -130,26 +180,25 @@ function render() {
         const vehicleEl = document.createElement('div');
         vehicleEl.id = `vehicle-${i}`;
         const isPlayer = i === 0;
-        
+
         let extraClasses = 'vehicle-block';
         if (isPlayer) {
             extraClasses += ' player-car-pattern player-car-shadow';
         }
-        
+
         const colorIndex = isPlayer ? 0 : ((i - 1) % 11) + 1; // 11 is the number of block colors defined in CSS
-        
+
         vehicleEl.className = `absolute rounded-md flex items-center justify-center font-bold text-white/50 cursor-grab vehicle-block-${colorIndex} ${extraClasses}`;
-        
+
         vehicleEl.style.width = v.hz ? `calc(100%/6 * ${v.length} - ${gap})` : `calc(100%/6 - ${gap})`;
         vehicleEl.style.height = v.hz ? `calc(100%/6 - ${gap})` : `calc(100%/6 * ${v.length} - ${gap})`;
         vehicleEl.style.top = `calc(100%/6 * ${v.y} + ${halfGap})`;
         vehicleEl.style.left = `calc(100%/6 * ${v.x} + ${halfGap})`;
         vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
-        vehicleEl.style.zIndex = '5'; // Ensure vehicles are above the EXIT text
-        
+        vehicleEl.style.zIndex = '5'; // 确保车辆在 EXIT 文本之上
         vehicleEl.addEventListener('mousedown', (e) => handleInteractionStart(e, i));
         vehicleEl.addEventListener('touchstart', (e) => handleInteractionStart(e, i), { passive: false });
-        
+
         boardEl.appendChild(vehicleEl);
     });
 
@@ -169,14 +218,19 @@ function render() {
     levelDisplayEl.textContent = gameState.levelIndex + 1;
     movesDisplayEl.textContent = gameState.moves;
 
-    prevBtn.disabled = gameState.levelIndex === 0;
-    nextBtn.disabled = gameState.levelIndex >= gameState.highestUnlockedLevel || gameState.levelIndex >= levels.length - 1;
-    
+    // 更新并显示最佳分数和回放按钮（如果存在）
+    const bestScore = gameState.bestScores[gameState.levelIndex];
+    if (isNumber(bestScore)) {
+        bestScoreDisplayEl.textContent = bestScore;
+    } else {
+        bestScoreDisplayEl.textContent = '--';
+    }
+
     // cleanup any visualViewport handlers and inline sizing
     try {
         document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
-    } catch (e) {}
+    } catch (e) { }
     winModalEl.classList.remove('flex');
     winModalEl.classList.add('hidden');
 }
@@ -187,10 +241,10 @@ function createCollisionGrid(excludeIndex = -1) {
         if (i === excludeIndex) return;
         for (let j = 0; j < v.length; j++) {
             if (v.hz) {
-                if(v.y >= 0 && v.y < 6 && v.x + j >= 0 && v.x + j < 6)
+                if (v.y >= 0 && v.y < 6 && v.x + j >= 0 && v.x + j < 6)
                     grid[v.y][v.x + j] = true;
             } else {
-                if(v.y + j >= 0 && v.y + j < 6 && v.x >= 0 && v.x < 6)
+                if (v.y + j >= 0 && v.y + j < 6 && v.x >= 0 && v.x < 6)
                     grid[v.y + j][v.x] = true;
             }
         }
@@ -217,12 +271,12 @@ function handleInteractionStart(e, vehicleIndex) {
     dragState.vehicleIndex = vehicleIndex;
     dragState.vehicleEl = vehicleEl;
     dragState.dragStartPos = getEventPosition(e);
-    
+
     vehicleEl.style.transition = 'none';
     vehicleEl.style.zIndex = '10';
 
     const grid = createCollisionGrid(vehicleIndex);
-    
+
     if (vehicle.hz) {
         let minX = vehicle.x;
         while (minX > 0 && !grid[vehicle.y][minX - 1]) {
@@ -274,28 +328,28 @@ function handleInteractionMove(e) {
 
 function handleInteractionEnd(e) {
     if (!dragState.isDragging) return;
-    
+
     document.removeEventListener('mousemove', handleInteractionMove);
     document.removeEventListener('mouseup', handleInteractionEnd);
     document.removeEventListener('touchmove', handleInteractionMove);
     document.removeEventListener('touchend', handleInteractionEnd);
-    
+
     const vehicle = gameState.vehicles[dragState.vehicleIndex];
     const vehicleEl = dragState.vehicleEl;
     let delta = 0;
-    
+
     const transform = vehicleEl.style.transform;
     if (transform) {
         const match = transform.match(/-?[\d.]+/);
         if (match) delta = parseFloat(match[0]);
     }
-    
+
     const cellsMoved = Math.round(delta / gameState.cellSize);
 
     // Instantly move to the final position without animation to prevent "bounce"
-    vehicleEl.style.transition = 'none'; 
+    vehicleEl.style.transition = 'none';
     vehicleEl.style.transform = 'none';
-    
+
     if (cellsMoved !== 0) {
         if (vehicle.hz) {
             vehicle.x += cellsMoved;
@@ -304,54 +358,139 @@ function handleInteractionEnd(e) {
         }
         gameState.moves++;
         movesDisplayEl.textContent = gameState.moves;
+
+        gameState.moveHistory.push({
+            vehicleIndex: dragState.vehicleIndex,
+            cellsMoved: cellsMoved
+        });
+
+        updateButtonStates();
     }
 
     // Apply the final snapped position
     const halfGap = '0.125rem';
     vehicleEl.style.top = `calc(100%/6 * ${vehicle.y} + ${halfGap})`;
     vehicleEl.style.left = `calc(100%/6 * ${vehicle.x} + ${halfGap})`;
-    
+
     // Force a reflow to ensure the styles are applied before re-enabling transition
-    vehicleEl.offsetHeight; 
+    vehicleEl.offsetHeight;
 
     // Re-enable transitions for future animations
     vehicleEl.style.transition = 'top 0.2s ease, left 0.2s ease';
     vehicleEl.style.zIndex = '5'; // Return to normal z-index
 
+    // 检查获胜条件
     if (cellsMoved !== 0) {
         checkWinCondition();
     }
-
-    dragState.isDragging = false;
-    dragState.vehicleIndex = -1;
-    dragState.vehicleEl = null;
+    // 拖拽状态在 checkWinCondition 中处理，这里不需要重置
 }
 
 function checkWinCondition() {
     const playerVehicle = gameState.vehicles[0];
-    if (playerVehicle.x + playerVehicle.length >= 6) {
-        gameState.gameWon = true;
-        
-        const vehicleEl = document.getElementById('vehicle-0');
-        if (vehicleEl) {
-            vehicleEl.classList.add('animate-win');
-        }
-        
-    const oldBest = gameState.bestScores[gameState.levelIndex];
-    gameState.isNewBest = (isNullish(oldBest) || gameState.moves < oldBest); // Set flag for new best (first time or better score)
-        
-        if (gameState.isNewBest) {
-            gameState.bestScores[gameState.levelIndex] = gameState.moves;
-            saveBestScores();
-        }
 
-        if (gameState.levelIndex === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < levels.length - 1) {
-            gameState.highestUnlockedLevel++;
-            saveHighestUnlockedLevel();
-        }
-        
-        setTimeout(showWinModal, 400);
+    // 守卫条件：如果移动的不是玩家车辆，或者玩家车辆未到达出口，则不是获胜条件。
+    if (dragState.vehicleIndex !== 0 || playerVehicle.x + playerVehicle.length < 6) {
+        // Not a winning move, so we can safely reset drag state here
+        // 非获胜移动，重置拖拽状态
+        dragState.isDragging = false;
+        dragState.vehicleIndex = -1;
+        dragState.vehicleEl = null;
+        return;
     }
+
+    // --- 获胜逻辑 ---
+    gameState.gameWon = true;
+    disableAllControls(); // 禁用所有背景按钮，因为游戏已获胜
+    const vehicleEl = document.getElementById('vehicle-0');
+    //飞出去动画
+    if (vehicleEl) {
+        vehicleEl.classList.add('animate-win');
+    }
+
+    const oldBest = gameState.bestScores[gameState.levelIndex];
+    // 在首次完成或平/破纪录时，都视为新纪录，以便保存通关过程
+    gameState.isNewBest = (isNullish(oldBest) || gameState.moves <= oldBest);
+
+    if (gameState.isNewBest) {
+        // 如果是新纪录，同时保存最佳步数和移动历史
+        gameState.bestScores[gameState.levelIndex] = gameState.moves;
+        if (gameState.moveHistory.length > 0) {
+            gameState.bestMoveHistories[gameState.levelIndex] = [...gameState.moveHistory];
+        }
+        saveBestScores();
+        saveBestMoveHistories();
+    }
+
+    if (gameState.levelIndex === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < levels.length - 1) {
+        gameState.highestUnlockedLevel++;
+        saveHighestUnlockedLevel();
+    }
+
+    setTimeout(showWinModal, 400);
+}
+
+function handleUndo() {
+    if (gameState.moves === 0 || gameState.gameWon) return;
+
+    const lastMove = gameState.moveHistory.pop();
+    if (!lastMove) return;
+
+    const { vehicleIndex, cellsMoved } = lastMove;
+    const vehicle = gameState.vehicles[vehicleIndex];
+
+    // 执行反向移动
+    if (vehicle.hz) {
+        vehicle.x -= cellsMoved;
+    } else {
+        vehicle.y -= cellsMoved;
+    }
+
+    gameState.moves--;
+    movesDisplayEl.textContent = gameState.moves;
+
+    // 直接更新DOM元素以实现动画，而不是重新渲染
+    updateVehiclePosition(vehicleIndex);
+    updateButtonStates();
+}
+
+async function handleReplay() {
+    const bestHistory = gameState.bestMoveHistories[gameState.levelIndex];
+    if (!bestHistory || bestHistory.length === 0) return;
+
+    // 重置关卡到初始状态
+    loadLevel(gameState.levelIndex);
+    disableAllControls(); // 确保在动画播放期间所有按钮都保持禁用
+
+    // 等待初始渲染完成
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 播放除了最后一步之外的所有步骤
+    for (let i = 0; i < bestHistory.length - 1; i++) {
+        const move = bestHistory[i];
+        const { vehicleIndex, cellsMoved } = move;
+        const vehicle = gameState.vehicles[vehicleIndex];
+
+        vehicle.hz ? (vehicle.x += cellsMoved) : (vehicle.y += cellsMoved);
+
+        updateVehiclePosition(vehicleIndex);
+
+        gameState.moves++;
+        movesDisplayEl.textContent = gameState.moves;
+
+        await new Promise(resolve => setTimeout(resolve, 400)); // 每步之间的延迟
+    }
+
+    // 直接触发获胜动画
+    const playerVehicleEl = document.getElementById('vehicle-0');
+    if (playerVehicleEl) {
+        playerVehicleEl.classList.add('animate-win'); // 现在动画会从正确的位置开始
+    }
+    gameState.moves++;
+    movesDisplayEl.textContent = gameState.moves;
+    // 回放结束后，重新加载关卡以恢复交互性
+    await new Promise(resolve => setTimeout(resolve, 800)); // 等待动画播放
+    loadLevel(gameState.levelIndex); // 恢复交互, loadLevel内部会调用render和updateButtonStates
 }
 
 let hiddenSwitchTextEl = null; // Now get from DOM by ID
@@ -367,7 +506,7 @@ function hideWinModal() {
     try {
         document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
-    } catch (e) {}
+    } catch (e) { }
     winModalEl.classList.remove('flex');
     winModalEl.classList.add('hidden');
 }
@@ -378,7 +517,7 @@ function showWinModal() {
     // Handle null/undefined: default to 0 if no score yet
     const displayBest = isNumber(bestScore) ? bestScore : 0;
     winBestScoreValueEl.textContent = displayBest;
-    
+
     // Simplified logic: show "New Best Score!" only on first completion or strictly better score
     if (gameState.isNewBest) {
         winMessageEl.textContent = "New Best Score!";
@@ -388,13 +527,13 @@ function showWinModal() {
         winBestScoreEl.classList.remove('text-yellow-300');
     }
 
-    updateButtonStates(); // Use helper for consistency
+    // Buttons are disabled by disableAllControls() upon win. No need to update here.
 
     // Prevent background from scrolling while modal is open
     try {
         document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
-    } catch (e) {}
+    } catch (e) { }
 
     hiddenSwitchClickCount = 0;
     const handleModalClick = (e) => {
@@ -406,7 +545,7 @@ function showWinModal() {
                     hiddenSwitchTimeout = null;
                 }
                 hiddenSwitchClickCount++;
-                
+
                 if (hiddenSwitchClickCount >= 3) {
                     if (gameState.highestUnlockedLevel === levels.length - 1) {
                         // Reset records
@@ -424,7 +563,7 @@ function showWinModal() {
                     hiddenSwitchClickCount = 0;
                     return;
                 }
-                
+
                 // Reset count if not consecutive (1s window)
                 hiddenSwitchTimeout = setTimeout(() => {
                     hiddenSwitchClickCount = 0;
@@ -447,7 +586,7 @@ function populateLevelSelectModal() {
     for (let i = 0; i < levels.length; i++) {
         const button = document.createElement('button');
         const isUnlocked = i <= gameState.highestUnlockedLevel;
-        
+
         if (isUnlocked) {
             button.className = 'aspect-square flex items-center justify-center rounded-md transition-colors text-lg relative font-semibold';
             button.innerHTML = `<span>${i + 1}</span>`;
@@ -486,12 +625,12 @@ function closeLevelSelectModal() {
     levelSelectModalEl.classList.add('hidden');
 }
 
-// In init(), create the Greek text element (initially hidden, appended to button row)
-function init() {
+function loadPersistentData() {
     try {
         const savedLevel = parseInt(localStorage.getItem('block2lock_currentLevel'), 10);
         const savedUnlocked = parseInt(localStorage.getItem('block2lock_highestUnlockedLevel'), 10);
         const savedScores = JSON.parse(localStorage.getItem('block2lock_bestScores') || '[]');
+        const savedHistories = JSON.parse(localStorage.getItem('block2lock_bestMoveHistories') || '[]');
 
         if (!isNaN(savedLevel) && savedLevel < levels.length) gameState.levelIndex = savedLevel;
         if (!isNaN(savedUnlocked)) gameState.highestUnlockedLevel = savedUnlocked;
@@ -499,10 +638,13 @@ function init() {
             // Clean up any null/undefined values during load (replace with undefined)
             gameState.bestScores = savedScores.map(score => isNullish(score) ? undefined : score);
         }
+        if (Array.isArray(savedHistories)) {
+            gameState.bestMoveHistories = savedHistories.map(h => Array.isArray(h) ? h : undefined);
+        }
     } catch (e) {
         console.error("Couldn't load saved data.", e);
     }
-    
+
     try {
         const savedTheme = localStorage.getItem('block2lock_theme');
         if (savedTheme === 'light' || savedTheme === 'dark') {
@@ -514,13 +656,17 @@ function init() {
         console.error('Failed to load theme from localStorage:', e);
         setTheme('dark');
     }
-    
+}
+
+function registerEventListeners() {
     prevBtn.addEventListener('click', () => loadLevel(gameState.levelIndex - 1));
     nextBtn.addEventListener('click', () => loadLevel(gameState.levelIndex + 1));
     resetBtn.addEventListener('click', () => loadLevel(gameState.levelIndex));
+    undoBtn.addEventListener('click', handleUndo);
+    replayBtn.addEventListener('click', handleReplay);
     modalNextBtn.addEventListener('click', () => {
         const nextLevel = gameState.levelIndex < levels.length - 1 ? gameState.levelIndex + 1 : 0;
-        loadLevel(nextLevel);
+        loadLevel(nextLevel); // This will also call updateButtonStates
         hideWinModal();
     });
 
@@ -528,12 +674,19 @@ function init() {
     closeLevelSelectBtn.addEventListener('click', closeLevelSelectModal);
     themeToggleBtn.addEventListener('click', toggleTheme);
 
-    function updateCellSize() {
-        if (boardEl) {
-            gameState.cellSize = boardEl.clientWidth / 6;
-        }
-    }
     window.addEventListener('resize', updateCellSize);
+}
+
+function updateCellSize() {
+    if (boardEl) {
+        gameState.cellSize = boardEl.clientWidth / 6;
+    }
+}
+
+// In init(), create the Greek text element (initially hidden, appended to button row)
+function init() {
+    loadPersistentData();
+    registerEventListeners();
     updateCellSize();
 
     // Get the hidden switch text element from DOM (static in HTML)
