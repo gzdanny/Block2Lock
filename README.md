@@ -68,7 +68,6 @@ To lock your Capacitor-based app in portrait mode on Android, modify the `Androi
 
 ```xml
 <activity
-    android:name="ai.dsgr.block2lock"
     android:exported="true"
     android:screenOrientation="portrait"
     android:configChanges="orientation|keyboardHidden|screenSize">
